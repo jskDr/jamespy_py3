@@ -442,8 +442,6 @@ def cv_LOO( xM, yV, disp = False, ldisp = False):
 	"""
 	This is a specialized function for LOO crossvadidation. 
 	"""
-	# print("This is cv_LOO().")
-
 	n_folds = xM.shape[0] # for LOO CV
 	return cv_LinearRegression_ci_pred_full_It( xM, yV, n_folds = n_folds, N_it = 1, 
 									shuffle = False, disp = disp, ldisp = ldisp)
@@ -1231,7 +1229,7 @@ def gs_BIKE_Ridge( A_list, yV, alphas_log = (1, -1, 9), X_concat = None, n_folds
 	return gs
 
 
-def _cv_r0( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph = True):
+def cv( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph = True):
 	"""
 	method can be 'Ridge', 'Lasso'
 	cross validation is performed so as to generate prediction output for all input molecules
@@ -1247,43 +1245,6 @@ def _cv_r0( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, gr
 		jutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
 	return yV_pred
-
-def cv( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph = True, shuffle = True):
-	"""
-	method can be 'Ridge', 'Lasso'
-	cross validation is performed so as to generate prediction output for all input molecules
-	"""	
-	print(xM.shape, yV.shape)
-
-	clf = getattr( linear_model, method)( alpha = alpha)
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
-	yV_pred = cross_validation.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
-
-	if graph:
-		print('The prediction output using cross-validation is given by:')
-		jutil.cv_show( yV, yV_pred, grid_std = grid_std)
-
-	return yV_pred
-
-def _cv_LOO_r0( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = True):
-	"""
-	method can be 'Ridge', 'Lasso'
-	cross validation is performed so as to generate prediction output for all input molecules
-	"""	
-	n_folds = xM.shape[0]
-
-	print(xM.shape, yV.shape)
-
-	clf = getattr( linear_model, method)( alpha = alpha)
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds)
-	yV_pred = cross_validation.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
-
-	if graph:
-		print('The prediction output using cross-validation is given by:')
-		jutil.cv_show( yV, yV_pred, grid_std = grid_std)
-
-	return yV_pred	
-
 
 def cv_Ridge_BIKE( A_list, yV, XX = None, alpha = 0.5, n_folds = 5, n_jobs = -1, grid_std = None):
 

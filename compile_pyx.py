@@ -13,13 +13,13 @@ def run():
 	# This is the platform dependent part.
 	if platform.system() == "Linux":
 		home = expanduser("~")
-		os.chdir( home + '/Dropbox/Aspuru-Guzik/python_lab/py3/jamespy/')
+		os.chdir( home + '/Dropbox/Aspuru-Guzik/python_lab/py3/jamespy_py3/')
 	elif platform.system() == "Darwin":
 		home = expanduser("~")
-		os.chdir( home + '/Dropbox (Personal)/Aspuru-Guzik/python_lab/py3/jamespy/')
+		os.chdir( home + '/Dropbox (Personal)/Aspuru-Guzik/python_lab/py3/jamespy_py3/')
 	elif platform.system() == "Windows":
 		home = expanduser("~")
-		os.chdir( home + '\Dropbox (개인 계정)\\Aspuru-Guzik\\python_lab\\py3\\jamespy')
+		os.chdir( home + '\Dropbox (개인 계정)\\Aspuru-Guzik\\python_lab\\py3\\jamespy_py3')
 
 	if platform.system() == "Windows":
 		if os.path.isfile('jpyx.*.pyd'):

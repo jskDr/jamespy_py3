@@ -20,10 +20,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
 
+# April 24, 2016
+from sklearn import cross_validation, metrics
+import skflow
+
 import jpandas as jpd
-import jutil, jchem
+import jchem, jgrid
 import j3x.jpyx
 import jseaborn as jsns
+import kutil
 
 def list_agg_n( n_folds):
 	"""
@@ -208,8 +213,38 @@ def set_X_23( s_l, xM_logP):
 	xM_d["logP"] = xM_logP
 
 	for d_s in ["MolW", "LASA", "logP"]:
-		x_a = xM_d[ d_s]
-		x_a = np.divide( x_a, np.std( x_a, axis = 0)) # Normalize
+		# x_a = xM_d[ d_s]
+		# x_a = np.divide( x_a, np.std( x_a, axis = 0)) # Normalize
+		xM_d[ d_s] = np.divide( xM_d[ d_s], np.std( xM_d[ d_s], axis = 0)) 
+
+	xM_2 = np.concatenate( [xM_d["MFP"], xM_d["MACCS"]], axis = 1)
+	xM_p = np.concatenate( [xM_d[ d_s] for d_s in ["MolW", "LASA", "logP"]], axis = 1) # Concatenation of associated properties
+	print( xM_2.shape, xM_p.shape)
+
+	# Output processing
+	#self.xM_d = xM_d
+	#self.xM_2 = xM_2 
+	#self.xM_p = xM_p
+
+	return xM_d, xM_2, xM_p
+
+
+def set_X_23_M2( s_l, xM_logP):
+	# s_l = self.s_l
+	# xM_logP = self.xM_logP
+
+	# Body 
+	xM_d = dict()
+	xM_d["MFP"] = jchem.get_xM( s_l, radius=4, nBits=2048)
+	xM_d["MACCS"] = jchem.get_xM_MACCSkeys( s_l)
+	xM_d["MolW"] = jchem.get_xM_molw( s_l)
+	xM_d["MolW2"] = np.power( jchem.get_xM_molw( s_l), 2)
+	xM_d["LASA"] = jchem.get_xM_lasa( s_l)
+	xM_d["LASA2"] = jchem.get_xM_lasa( s_l)
+	xM_d["logP"] = xM_logP
+
+	for d_s in ["MolW", "MolW2", "LASA", "LASA2", "logP"]:
+		xM_d[ d_s] = np.divide( xM_d[ d_s], np.std( xM_d[ d_s], axis = 0)) 
 
 	xM_2 = np.concatenate( [xM_d["MFP"], xM_d["MACCS"]], axis = 1)
 	xM_p = np.concatenate( [xM_d[ d_s] for d_s in ["MolW", "LASA", "logP"]], axis = 1) # Concatenation of associated properties
@@ -249,7 +284,6 @@ def set_alpha_log( a_st = -2, a_ed = 2, a_n = 2):
 	a_N = (a_ed - a_st)*a_n + 1
 	return (a_st, a_ed, a_N)
 
-
 class MultiDK( object):
 	def __init__(self, fname = 'sheet/wang3705_with_logP.csv'):
 		self.fname_core = fname[:-14] 
@@ -284,6 +318,21 @@ class MultiDK( object):
 
 		return self
 
+	def set_X_M2( self):
+		# Input processing
+		s_l = self.s_l
+		xM_logP = self.xM_logP
+
+		# BOdy
+		xM_d, xM_2, xM_p = set_X_23_M2( s_l, xM_logP)
+
+		# Output processing
+		self.xM_d = xM_d
+		self.xM_2 = xM_2 
+		self.xM_p = xM_p
+
+		return self
+
 	def set_A( self):
 		# Input processing
 		xM_d = self.xM_d
@@ -298,7 +347,7 @@ class MultiDK( object):
 
 		return self
 
-	def grid_search( self):
+	def grid_search_sd( self):
 		# input processing
 		xM_d = self.xM_d
 		xM_p = self.xM_p
@@ -355,16 +404,216 @@ class MultiDK( object):
 
 		return self
 
+	def grid_search( self):
+		# input processing
+		xM_d = self.xM_d
+		xM_p = self.xM_p
+
+		yV = self.yV
+
+		A_d = self.A_d
+		A_2 = self.A_2 
+
+		#Body
+		t = time() 
+		pdi_d = dict()
+
+		for k in xM_d:
+			s = "SD({})".format( k)
+			pdi_d[s] = jsns.pdi_gs_full( s, [xM_d[k]], yV, expension = True, n_jobs = 1)
+			print('Elasped time is', time() - t, 'sec')
+
+		# pdi_d["SD(MFP)"] = jsns.pdi_gs_full( "SD(MFP)", [xM_d["MFP"]], yV, expension = True, n_jobs = 1)
+		# print('Elasped time is', time() - t, 'sec')
+
+		# pdi_d["SD(MACCS)"] = jsns.pdi_gs_full( "SD(MACCS)", [xM_d["MACCS"]], yV, expension = True, n_jobs = 1)
+		# print('Elasped time is', time() - t, 'sec')
+
+		# pdi_d["SD(MolW)"] = jsns.pdi_gs_full( "SD(MolW)", [xM_d["MolW"]], yV, expension = True, n_jobs = 1)
+		# print('Elasped time is', time() - t, 'sec')
+
+		# pdi_d["SD(LASA)"] = jsns.pdi_gs_full( "SD(LASA)", [xM_d["MolW"]], yV, expension = True, n_jobs = 1)
+		# print('Elasped time is', time() - t, 'sec')
+
+		# pdi_d["SD(logP)"] = jsns.pdi_gs_full( "SD(logP)", [xM_d["logP"]], yV, expension = True, n_jobs = 1)
+		# print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MD21"] = jsns.pdi_gs_full( "MD21", [xM_d[ d_s] for d_s in ["MFP", "MACCS", "MolW"]], yV, 
+										 expension = True)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MD23"] = jsns.pdi_gs_full( "MD23", list(xM_d.values()), yV, expension = True)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MDMK1to10"] = jsns.pdi_gs_full( "MDMK1to10", [A_d["MFP"]], yV, 
+											  mode = "BIKE_Ridge", expension = True)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MDMK2to11"] = jsns.pdi_gs_full( "MDMK2to11", [A_2], yV, X_concat = xM_d["MolW"], 
+											  mode = "BIKE_Ridge", expension = True)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MDMK2to13"] = jsns.pdi_gs_full( "MDMK2to13", [A_2], yV, X_concat = xM_p, 
+											  mode = "BIKE_Ridge", expension = True)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MDMK2to21"] = jsns.pdi_gs_full( "MDMK2to21", [A_d["MFP"], A_d["MACCS"]], yV, X_concat = xM_d["MolW"], 
+											  mode = "BIKE_Ridge", expension = True)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdi_d["MDMK2to23"] = jsns.pdi_gs_full( "MDMK2to23", [A_d["MFP"], A_d["MACCS"]], yV, X_concat = xM_p, 
+										  mode = "BIKE_Ridge", expension = True, n_jobs = 1)
+		print('Elasped time is', time() - t, 'sec')
+
+		pdo = pd.concat( pdi_d.values())
+		print( pdo.shape)
+
+		Nm = len(pdi_d)
+		#print( "The number of methods now is", Nm)
+		fname_out = self.fname_core + "_MDMK2to23_{}methods.csv".format(Nm)
+		print("The performance data are save to", fname_out)
+		pdo.to_csv( fname_out, index = False)
+
+		self.pdo = pdo
+
+		return self
+
+	def cv_MultiDK23( self, alpha, n_jobs = 1):
+		"""
+		Return
+		--------
+		yV_pred: np.array(), mostly 1D
+		return prediction results.
+
+		"""
+		self.set_xy()
+		self.set_X()
+		self.set_A() 
+
+		xM_d = self.xM_d
+		xM_p = self.xM_p
+
+		yV = self.yV
+
+		# A_d = self.A_d
+		A_2 = self.A_2 
+
+		#Body
+		t = time() 
+		yV_pred = jgrid.cv_BIKE_Ridge( [A_2], yV, alpha = alpha, XX = xM_p, n_folds = 20, n_jobs = n_jobs, grid_std = None)
+		print('Elasped time is', time() - t, 'sec')
+
+		return yV_pred
+
+
 	def plot( self):
 		sns.tsplot(data=self.pdo, time="alpha", unit="unit", condition="Method", value="r2")
 		plt.xscale('log')
 		plt.ylabel( r'$r^2$')
 
-	def run( self):
+	def _run_r0( self):
 		self.set_xy()
 		self.set_X()
 		self.set_A() 
 		self.grid_search()
 		self.plot()
 
+	def run( self, SDx = False):
+		self.set_xy()
+		self.set_X()
+		self.set_A() 
+		if SDx:
+			self.grid_search()
+		else:
+			self.grid_search_sd()		
+		self.plot()
+
 		return self
+
+#############################
+# April 24, 2016
+#############################
+
+class MultiDK_DL( MultiDK):
+	"""
+	Deep learning version of MultiDK
+	Kernels are, however, not applied.
+	"""
+	def __init__( self, fname = 'sheet/wang3310_with_logP.csv', graph = False):
+		"""
+		alpha_l is fixed now. 
+		"""
+		super().__init__( fname = fname)
+		self.graph = graph
+
+	def learning( self):
+
+		X = self.X
+		y = self.y
+		print( "Shape of X and y are", X.shape, y.shape)
+
+		X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y,
+			test_size=0.2, random_state=42)
+		X_train, X_val, y_train, y_val = cross_validation.train_test_split(X_train, y_train,
+														  test_size=0.2, random_state=42)
+
+		val_monitor = skflow.monitors.ValidationMonitor(X_val, y_val,
+														early_stopping_rounds=200)
+		model = skflow.TensorFlowDNNRegressor(hidden_units=[100, 50, 10], steps=5000)
+		model.fit(X_train, y_train, val_monitor)
+
+		yP = model.predict(X_test)
+		score_r2 = metrics.r2_score(y_test, yP)
+		score_MedAE = metrics.median_absolute_error(y_test, yP)
+		print('Accuracy')
+		print('--------')
+		print('R2: {0:f}, MedAE: {1:f}'.format(score_r2, score_MedAE))
+
+		if self.graph:
+			kutil.regress_show4( y_test, yP)
+
+	def _set_X_r0( self):
+		super().set_X()
+		
+		print( [self.xM_d[key].shape for key in self.xM_d]) 
+
+		self.X = np.array( np.concatenate( list( self.xM_d.values()), axis = 1))
+		self.y = np.array( self.yV)
+
+	def set_X( self, ds_mode = "11111"):
+		"""
+		It combines only selected items by ds_mode
+		Each bit in a bit string indecate whether the coressponding descriptor
+		is included or not. 
+		Default case, all descriptors will be aggreagated.
+		"""
+		super().set_X_M2()
+		
+		#mode_l = [int(x) for x in ds_mode]
+		mode_key = ["MFP", "MACCS", "MolW2", "LASA", "logP"]
+		assert len(mode_key) == len(ds_mode)
+		X_l = list()
+		for idx in range( len(ds_mode)):
+			if ds_mode[ idx] == '1':
+				X_l.append( self.xM_d[ mode_key[ idx]])
+	
+		self.X = np.array( np.concatenate( X_l, axis = 1))
+		self.y = np.array( self.yV)[:,0]
+
+	def run_mode( self, ds_mode):
+		self.set_X( ds_mode)
+		self.learning()
+
+	def run( self):
+		self.set_xy()
+
+		ds_mode_l = ["00111", "00110", "00101"]
+		for ds_mode in ds_mode_l:
+			print()
+			print("======================")
+			print("ds_mode:", ds_mode)
+			self.run_mode( ds_mode)
+
+		return self
+
+

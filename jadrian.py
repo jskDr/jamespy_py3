@@ -25,7 +25,7 @@ import jutil
 #################################################
 # Utilities
 #################################################
-def to_kegg_id( pdr, cn = "KEGG_ID_Adrian", fname = None, disp = False):
+def to_kegg_id( pdr, cn = "KEGG_ID_Adrian", sn = "KEGG_ID", fname = None, disp = False):
 	"""
 	New column is added. This new colulum is simplied KEGG_ID,
 	which is generated from full KEGG_ID whether it is Adrian or Ed's.
@@ -38,7 +38,7 @@ def to_kegg_id( pdr, cn = "KEGG_ID_Adrian", fname = None, disp = False):
 		if disp:
 			print(kid_a, "==>", kid)
 		KEGG_ID_l.append( kid) 
-	pdw["KEGG_ID"] = KEGG_ID_l
+	pdw[ sn] = KEGG_ID_l
 	
 	if fname:
 		"""
@@ -47,6 +47,13 @@ def to_kegg_id( pdr, cn = "KEGG_ID_Adrian", fname = None, disp = False):
 		pdw.to_csv( fname, index = False)
 
 	return pdw
+
+def reduce_kegg_id( pdr, cn = "KEGG_ID", sn = "KEGG_ID_2"):
+	"""
+	New column is added. This new colulum is simplied KEGG_ID,
+	which is generated from full KEGG_ID whether it is Adrian or Ed's.
+	"""
+	return to_kegg_id( pdr, cn = cn, sn = sn)
 
 #################################################
 # Application codes
@@ -64,6 +71,17 @@ def init():
 	pdr2 = jpd.pd.read_csv( 'DataFrame_Redox_Reactions_with_smiles122.csv')
 	pdr3 = jpd.pd.read_csv( 'redox_quantum_chemistry_v2+pred_comma.csv')
 
+
+class AdrianRP(object):
+	def __init__(self):
+		self.pdr_code = jpd.pd.read_csv('KEGG_to_smiles.csv') 
+		self.pdr_reaction = jpd.pd.read_csv('DataFrame_Redox_Reactions.csv')
+		self.pdr2 = jpd.pd.read_csv( 'DataFrame_Redox_Reactions_with_smiles122.csv')
+		self.pdr3 = jpd.pd.read_csv( 'redox_quantum_chemistry_v2+pred_comma.csv')
+
+	def getsm( self, mid = 'C00025'):    
+		return self.pdr_code[ self.pdr_code['KEGG_ID'] == mid].SMILES.tolist()[0]
+
 def getsm( mid = 'C00025'):    
 	return pdr_code[ pdr_code['KEGG_ID'] == mid].SMILES.tolist()[0]
 
@@ -77,9 +95,59 @@ def sep_ids( pdw):
 	pdw['right_id'] = x2
 	return pdw
 
+def get_each_KEGG_ID( pdr_reaction, sn = 'KEGG_ID'):
+	x1 = list()
+	x2 = list()
+	for x in pdr_reaction[ sn]:
+		x1.append( x[:6])
+		x2.append( x[9:9+6])
+
+	pdw = pdr_reaction.copy()
+	pdw['left_id'] = x1
+	pdw['right_id'] = x2
+	return pdw
+
 def get_2smiles( pdw):
 	left_smiles = list(map( getsm, pdw.left_id))     
 	right_smiles = list(map( getsm, pdw.right_id)) 
+	
+	pdw['left_smiles'] = left_smiles
+	pdw['right_smiles'] = right_smiles
+	
+	return pdw
+
+def get_2id_to_2smiles( pdw):
+	adrian_rp = AdrianRP()
+	left_smiles = list(map( adrian_rp.getsm, pdw.left_id))     
+	right_smiles = list(map( adrian_rp.getsm, pdw.right_id)) 
+	
+	pdw_new = pdw.copy()
+	pdw_new['left_smiles'] = left_smiles
+	pdw_new['right_smiles'] = right_smiles
+	
+	return pdw_new
+
+def kegg_id_to_2smiles( in_df, fname_k2s = 'sheet/KEGG_to_smiles_2nan.csv', cn = "KEGG_ID"):
+	"""
+	Based on fname_k2s, 'left KEGG_ID = right KEGG_ID' in KEGG_ID column 
+	transforms to left_smiles and right_smiles, which are 
+	included copied DataFrame. 
+	"""
+	sn = 'KEGG_ID_2' # Internal name 
+	pdr_code = jpd.pd.read_csv( fname_k2s) 
+
+	def get_2sm( mid):
+		s = pdr_code[ pdr_code[ "KEGG_ID"] == mid]
+		if len(s):
+			return s.SMILES.tolist()[0]
+		else:
+			raise TypeError( 'No KEGG_ID in the transform list for', mid)
+	
+	k2_df = reduce_kegg_id( in_df, cn = cn, sn = sn)
+	pdw = get_each_KEGG_ID( k2_df, sn = sn)
+
+	left_smiles = list(map( get_2sm, pdw.left_id))     
+	right_smiles = list(map( get_2sm, pdw.right_id)) 
 	
 	pdw['left_smiles'] = left_smiles
 	pdw['right_smiles'] = right_smiles

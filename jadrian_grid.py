@@ -7,7 +7,8 @@ from collections import OrderedDict
 import pandas as pd
 
 # import jadrian
-import jgrid
+#import jgrid
+import kgrid
 from jadrian import MedianMeanStd, iter_od_base
 
 class MedianMeanStd_Run( MedianMeanStd):
@@ -103,8 +104,8 @@ class MedianMeanStd_Expand_LOO( MedianMeanStd_Run):
 		
 		# shuffle is False since it consider LOO and will be compared with 
 		# original molecule index. 
-		o_d = jgrid.cv_LOO( xM, yV, ldisp = self.Disp)
-
+		o_d = kgrid.cv_LOO( xM, yV, ldisp = self.Disp)
+		
 		# print( "yVp = ", o_d['yVp'])
 
 		# Original value vector is extended to have repeated value vector
@@ -156,7 +157,7 @@ class LOO_Grid( MedianMeanStd_Expand_LOO):
 		
 		# shuffle is False since it consider LOO and will be compared with 
 		# original molecule index. 
-		o_d = jgrid.cv_LOO_Ridge( xM, yV, od['alpha'], ldisp = self.Disp)
+		o_d = kgrid.cv_LOO_Ridge( xM, yV, od['alpha'], ldisp = self.Disp)
 
 		# print( "yVp = ", o_d['yVp'])
 
@@ -188,6 +189,52 @@ class LOO_Grid( MedianMeanStd_Expand_LOO):
 		self.od['Regularization'] = ['Ridge']
 		for alpha in self.alpha_l:
 			self.od['alpha'] = [alpha]
+			self.each()
+
+		fname_out = self.out_file[:-4] + self.fname_out_tag + '.csv'
+		print("The result dataframe is saved to", fname_out)
+		self.pdo.to_csv( self.out_file, index = False)
+		return self
+
+class LOO_3Regression( MedianMeanStd_Expand_LOO):
+	def __init__(self, alpha_l = [0]):
+		"""
+		Ridge based grid search is applied with alpha_l
+		"""
+		self.alpha_l = alpha_l
+		super().__init__()
+
+	def each_base( self, pdr, type_id = 0): # pdr = pdr[ pdr.Type == type_id]:
+		"""
+		if type_id is not defined, it becomes 0.
+		"""
+		od = self.od.copy() 
+		xM, yV = self.get_xM_yV( pdr)
+		
+		# shuffle is False since it consider LOO and will be compared with 
+		# original molecule index. 
+		o_d = kgrid.cv_LOO_mode( od['Regression'][0], xM, yV, ldisp = self.Disp)
+
+		# Original value vector is extended to have repeated value vector
+		for key in list( self.od):
+			od[ key] = self.od[ key] * pdr.shape[0]
+
+		od['CV Mode'] = ['LOO'] * pdr.shape[0]
+		# od['Regression'] = ['Linear'] * pdr.shape[0]
+		od['Group mode'] = ['Independent'] * pdr.shape[0]
+		od['Group(s)'] = [type_id] * pdr.shape[0]
+
+		od['Unit'] = range( pdr.shape[0])
+		od['Target'] = yV.A1.tolist()
+		od['Result'] = o_d['yVp']
+		od['ABS_err'] = o_d['list']
+
+		return od
+
+	def run(self):
+		for r_type in ["None", "Bias", "Linear"]: 
+			print( "Regression type:", r_type)
+			self.od['Regression'] = [r_type]
 			self.each()
 
 		fname_out = self.out_file[:-4] + self.fname_out_tag + '.csv'

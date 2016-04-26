@@ -15,10 +15,8 @@ import itertools
 import random
 
 #My personal library
-import jchem
 import j3x.jpyx
-
-from maml.gp import gaussian_process as gp
+import kchem
 
 def _sleast_r0( a = '1000', ln = 10):
 	"It returns 0 filled string with the length of ln."
@@ -96,14 +94,6 @@ def mlr3_coef_ridge( RM, yE, alpha = 0.5, disp = True, graph = True):
 
 	return clf.coef_, clf.intercept_
 
-def ann_pre( RM, yE, disp = True, graph = True):
-	"""
-	In ann case, pre and post processing are used
-	while in mlr case, all processing is completed by one function (mlr).
-	ann processing will be performed by shell command
-	"""
-	jchem.gen_input_files_valid( RM, yE, RM)
-
 def ann_post( yv, disp = True, graph = True):
 	"""
 	After ann_pre and shell command, ann_post can be used.
@@ -130,23 +120,6 @@ def ann_post_range( range_tr, range_val, yv, disp = True, graph = True):
 
 	return r_sqr, RMSE
 
-def _ann_show_r0( yEv, yEv_calc, disp = True, graph = True):
-	r_sqr, RMSE = jchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
-	if graph:
-		plt.scatter( yEv.tolist(), yEv_calc.tolist())
-		ax = plt.gca()
-		lims = [
-			np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-			np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
-		]
-		# now plot both limits against eachother
-		#ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
-		ax.plot(lims, lims, '-', color = 'pink')
-		plt.xlabel('Target')
-		plt.ylabel('Prediction')
-		plt.show()
-	return r_sqr, RMSE
-
 def _regress_show_r0( yEv, yEv_calc, disp = True, graph = True, plt_title = None):
 
 	# if the output is a vector and the original is a metrix, 
@@ -154,7 +127,7 @@ def _regress_show_r0( yEv, yEv_calc, disp = True, graph = True, plt_title = None
 	if len( np.shape(yEv)) == 2 and len( np.shape(yEv_calc)) == 1:
 		yEv_calc = np.mat( yEv_calc).T
 
-	r_sqr, RMSE = jchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
+	r_sqr, RMSE = kchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
 	if graph:
 		plt.scatter( yEv.tolist(), yEv_calc.tolist())
 		ax = plt.gca()
@@ -182,7 +155,7 @@ def regress_show( yEv, yEv_calc, disp = True, graph = True, plt_title = None):
 	if len( np.shape(yEv)) == 1:
 		yEv = np.mat( yEv).T
 
-	r_sqr, RMSE = jchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
+	r_sqr, RMSE = kchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
 	if graph:
 		#plt.scatter( yEv.tolist(), yEv_calc.tolist())	
 		plt.figure()	
@@ -210,7 +183,7 @@ def regress_show3( yEv, yEv_calc, disp = True, graph = True, plt_title = None):
 	# if the output is a vector and the original is a metrix, 
 	# the output is translated to a matrix. 
 
-	r_sqr, RMSE, MAE = jchem.estimate_score3( yEv, yEv_calc, disp = disp)
+	r_sqr, RMSE, MAE = kchem.estimate_score3( yEv, yEv_calc, disp = disp)
 	
 	if graph:
 		#plt.scatter( yEv.tolist(), yEv_calc.tolist())	
@@ -307,7 +280,7 @@ def cv_show( yEv, yEv_calc, disp = True, graph = True, grid_std = None):
 	if len( np.shape(yEv)) == 1:
 		yEv = np.mat( yEv).T
 
-	r_sqr, RMSE = jchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
+	r_sqr, RMSE = kchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
 	if graph:
 		#plt.scatter( yEv.tolist(), yEv_calc.tolist())	
 		plt.figure()	
@@ -339,7 +312,7 @@ def mlr_show( clf, RMv, yEv, disp = True, graph = True):
 	if len( np.shape(yEv)) == 2 and len( np.shape(yEv_calc)) == 1:
 		yEv_calc = np.mat( yEv_calc).T
 
-	r_sqr, RMSE = jchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
+	r_sqr, RMSE = kchem.estimate_accuracy( yEv, yEv_calc, disp = disp)
 	if graph:
 		plt.figure()
 		ms_sz = max(min( 4000 / yEv.shape[0], 8), 1)
@@ -359,13 +332,7 @@ def mlr_show( clf, RMv, yEv, disp = True, graph = True):
 
 	return r_sqr, RMSE
 
-
 def estimate_accuracy4(yEv, yEv_calc, disp = False):
-	"""
-	It was originally located in jchem. However now it is allocated here
-	since the functionality is more inline with jutil than jchem. 
-	"""
-
 	r_sqr = metrics.r2_score( yEv, yEv_calc)
 	RMSE = np.sqrt( metrics.mean_squared_error( yEv, yEv_calc))
 	MAE = metrics.mean_absolute_error( yEv, yEv_calc)
@@ -382,7 +349,7 @@ def mlr_show3( clf, RMv, yEv, disp = True, graph = True):
 	if len( np.shape(yEv)) == 2 and len( np.shape(yEv_calc)) == 1:
 		yEv_calc = np.mat( yEv_calc).T
 
-	r_sqr, RMSE, aae = jchem.estimate_accuracy3( yEv, yEv_calc, disp = disp)
+	r_sqr, RMSE, aae = kchem.estimate_accuracy3( yEv, yEv_calc, disp = disp)
 	if graph:
 		plt.figure()
 		ms_sz = max(min( 4000 / yEv.shape[0], 8), 1)
@@ -445,7 +412,7 @@ def mlr_val( RM, yE, disp = True, graph = True, rate = 2, more_train = True, cen
 	"""
 	Validation is peformed as much as the given ratio.
 	"""
-	RMt, yEt, RMv, yEv = jchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
+	RMt, yEt, RMv, yEv = kchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
 
 	clf = linear_model.LinearRegression()	
 	clf.fit( RMt, yEt)
@@ -462,7 +429,7 @@ def svr_val( RM, yE, C = 1.0, epsilon = 0.1, disp = True, graph = True, rate = 2
 	"""
 	Validation is peformed as much as the given ratio.
 	"""
-	RMt, yEt, RMv, yEv = jchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
+	RMt, yEt, RMv, yEv = kchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
 
 	clf = svm.SVR( C = C, epsilon = epsilon)	
 	clf.fit( RMt, yEt.A1)
@@ -479,7 +446,7 @@ def mlr_val_ridge( RM, yE, rate = 2, more_train = True, center = None, alpha = 0
 	"""
 	Validation is peformed as much as the given ratio.
 	"""
-	RMt, yEt, RMv, yEv = jchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
+	RMt, yEt, RMv, yEv = kchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
 
 	print("Ridge: alpha = {}".format( alpha))
 	clf = linear_model.Ridge( alpha = alpha)	
@@ -514,8 +481,6 @@ def mlr_val_avg_2( RM, yE, disp = False, graph = False):
 
 		RMt, yEt = RM[ t_seq, :], yE[ t_seq, 0]
 		RMv, yEv = RM[ v_seq, :], yE[ v_seq, 0]
-
-		#RMt, yEt, RMv, yEv = jchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)	
 
 		clf = linear_model.LinearRegression()	
 		clf.fit( RMt, yEt)
@@ -743,14 +708,6 @@ def mlr_val_vseq_MMSE( RM, yE, v_seq, alpha = .5, disp = True, graph = True):
 
 	return r_sqr, RMSE	
 
-def _ann_val_pre_r0( RM, yE, disp = True, graph = True):
-	"""
-	In ann case, pre and post processing are used
-	while in mlr case, all processing is completed by one function (mlr).
-	ann processing will be performed by shell command
-	"""
-	jchem.gen_input_files_valid( RM[::2,:], yE[::2,0], RM)
-
 def ann_val_pre( RM, yE, rate = 2, more_train = True, center = None):
 	"""
 	In ann case, pre and post processing are used
@@ -761,8 +718,8 @@ def ann_val_pre( RM, yE, rate = 2, more_train = True, center = None):
 	Later, random selection will be included, while currently 
 	deterministic selection is applied. 
 	"""
-	RMt, yEt, RMv, yEv = jchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
-	jchem.gen_input_files_valid( RMt, yEt, RM)
+	RMt, yEt, RMv, yEv = kchem.get_valid_mode_data( RM, yE, rate = rate, more_train = more_train, center = center)
+	kchem.gen_input_files_valid( RMt, yEt, RM)
 
 def _ann_val_post_r0( yE, disp = True, graph = True):
 	"""
@@ -786,7 +743,7 @@ def ann_val_post( yE, disp = True, graph = True, rate = 2, more_train = True, ce
 	df_ann = pd.read_csv( 'ann_out.csv')
 	yE_c = np.mat( df_ann['out'].tolist()).T
 
-	yEt, yEt_c, yEv, yEv_c = jchem.get_valid_mode_data( yE, yE_c, rate = rate, more_train = more_train, center = center)
+	yEt, yEt_c, yEv, yEv_c = kchem.get_valid_mode_data( yE, yE_c, rate = rate, more_train = more_train, center = center)
 	
 	print('Trainig result')
 	ann_show( yEt, yEt_c, disp = disp, graph = graph)
@@ -1082,174 +1039,6 @@ def cv_LinearRegression( xM, yV, n_jobs = -1):
 
 	return cv_scores
 
-def cv_LinearRegression_A( xM, yV, s_l):
-	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = A
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		print(A_molw_train.shape, yV[ train, 0].shape)
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l	
-
-def cv_LinearRegression_Asupervising( xM, yV, s_l):
-	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		#print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = A
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		print(A_molw_train.shape, yV[ train, 0].shape)
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l	
-
-def cv_LinearRegression_Asupervising_molw( xM, yV, s_l):
-	
-	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = jchem.add_new_descriptor( A, molw_l)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-def cv_Ridge_Asupervising_molw( xM, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = jchem.add_new_descriptor( A, molw_l)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-def cv_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( len(s_l), n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM1_shuffle = np.concatenate( (xM1[ train, :], xM1[ test, :]), axis = 0)
-		xM2_shuffle = np.concatenate( (xM2[ train, :], xM2[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A1_redundant = j3x.jpyx.calc_tm_sim_M( xM1_shuffle)
-		A1 = A1_redundant[ :, :len(train)]
-		A2_redundant = j3x.jpyx.calc_tm_sim_M( xM2_shuffle)
-		A2 = A2_redundant[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-		molwV = np.mat( molw_l).T
-
-		#A_molw = jchem.add_new_descriptor( A, molw_l)
-		print(A1.shape, A2.shape, molwV.shape)
-		# A_molw = np.concatenate( (A1, A2, molwV), axis = 1)
-		A_molw = np.concatenate( (A1, A2), axis = 1)
-		print(A_molw.shape)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-
 def gs_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha_l):
 	"""
 	This 2fp case uses two fingerprints at the same in order to 
@@ -1261,47 +1050,6 @@ def gs_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha_l):
 		r2_l = cv_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha)
 		r2_l2.append( r2_l)
 	return r2_l2
-
-
-def cv_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( len(s_l), n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM1_shuffle = np.concatenate( (xM1[ train, :], xM1[ test, :]), axis = 0)
-		xM2_shuffle = np.concatenate( (xM2[ train, :], xM2[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A1_redundant = j3x.jpyx.calc_tm_sim_M( xM1_shuffle)
-		A1 = A1_redundant[ :, :len(train)]
-		A2_redundant = j3x.jpyx.calc_tm_sim_M( xM2_shuffle)
-		A2 = A2_redundant[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-		molwV = np.mat( molw_l).T
-
-		#A_molw = jchem.add_new_descriptor( A, molw_l)
-		print(A1.shape, A2.shape, molwV.shape)
-		A_molw = np.concatenate( (A1, A2, molwV), axis = 1)
-		print(A_molw.shape)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
 
 def gs_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha_l):
 	"""
@@ -1330,41 +1078,6 @@ def gs_Ridge_Asupervising( xM, yV, s_l, alpha_l):
 		r2_l = cv_Ridge_Asupervising( xM, yV, s_l, alpha)
 		r2_l2.append( r2_l)
 	return r2_l2
-
-def cv_Ridge_Asupervising( xM, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = A
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-
 
 def gs_RidgeByLasso_kf_ext( xM, yV, alphas_log_l):
 

@@ -1,14 +1,14 @@
 """
 grid search codes for machine learning
+Chemistry toolbox such as RDKit is not used. 
 """
 
-from sklearn import cross_validation, cross_validation, grid_search, linear_model, svm, metrics
+from sklearn import cross_validation, grid_search, linear_model, svm, metrics
 import numpy as np
 import pandas as pd
 from operator import itemgetter
 
 import jutil
-import j3x.jpyx
 from jsklearn import binary_model
 
 def gs_Lasso( xM, yV, alphas_log = (-1, 1, 9), n_folds=5, n_jobs = -1):
@@ -440,17 +440,31 @@ def cv_LinearRegression_ci_pred_It( xM, yV, n_folds = 5, scoring = 'median_absol
 
 def cv_LOO( xM, yV, disp = False, ldisp = False):
 	"""
-	This is a specialized function for LOO crossvadidation. 
+	This is a specialized function for LOO cross_validation. 
 	"""
-	# print("This is cv_LOO().")
-
 	n_folds = xM.shape[0] # for LOO CV
 	return cv_LinearRegression_ci_pred_full_It( xM, yV, n_folds = n_folds, N_it = 1, 
 									shuffle = False, disp = disp, ldisp = ldisp)
 
+def cv_LOO_mode( mode, xM, yV, disp = False, ldisp = False):
+	"""
+	This is a specialized function for LOO cross_validation. 
+	"""
+
+	if mode == "Linear":
+		# Linear regression
+		return cv_LOO( xM = xM, yV = yV, disp = disp, ldisp = ldisp)
+	elif mode == "Bias":
+		return cv_LinearRegression_Bias( xM, yV)
+	elif mode == "None":
+		return cv_LinearRegression_None( xM, yV)
+
+	raise ValueError("Mode is not support: mode =", mode)
+
+
 def cv_LOO_Ridge( xM, yV, alpha, disp = False, ldisp = False):
 	"""
-	This is a specialized function for LOO crossvadidation. 
+	This is a specialized function for LOO cross_validation. 
 	"""
 	n_folds = xM.shape[0] # for LOO CV
 	return cv_LinearRegression_ci_pred_full_It_Ridge( xM, yV, alpha, n_folds = n_folds, N_it = 1, 
@@ -516,6 +530,58 @@ def cv_LinearRegression_ci_pred_full_It( xM, yV, n_folds = 5, N_it = 10,
 	return o_d
 
 
+def cv_LinearRegression_None( xM, yV):
+	"""
+	N_it times iteration is performed for cross_validation in order to make further average effect. 
+	The flag of 'disp' is truned off so each iteration will not shown.  
+	"""
+	#print( "cv_LinearRegression_None", xM.shape, yV.shape)
+	X, y = np.array( xM)[:,0], np.array( yV)[:,0]
+
+	# only 1-dim is allowed for both X and y
+	assert (X.ndim == 1) or (X.shape[2] == 1) and (yV.ndim == 1) or (yV.shape[2] == 1)
+
+	yP = X
+	cv_score_le = np.abs( np.array( y - yP)).tolist()
+		
+	o_d = {'median_abs_err': np.median( cv_score_le),
+		   'mean_abs_err': np.mean( cv_score_le),
+		   'std_abs_err': np.std( cv_score_le), # this can be std(err)
+		   'list': cv_score_le,
+		   'ci': "t.b.d",
+		   'yVp': X.tolist()}
+	
+	return o_d
+
+def cv_LinearRegression_Bias( xM, yV):
+	"""
+	N_it times iteration is performed for cross_validation in order to make further average effect. 
+	The flag of 'disp' is truned off so each iteration will not shown.  
+	"""
+	#print( "cv_LinearRegression_None", xM.shape, yV.shape)
+	X, y = np.array( xM)[:,0], np.array( yV)[:,0]
+
+	# only 1-dim is allowed for both X and y
+	assert (X.ndim == 1) or (X.shape[2] == 1) and (yV.ndim == 1) or (yV.shape[2] == 1)
+
+	loo = cross_validation.LeaveOneOut( X.shape[0])
+	yP = y.copy()
+	for train, test in loo:
+		bias = np.mean(y[train] - X[train])
+		yP[test] = X[test] + bias
+
+	cv_score_le = np.abs( np.array( y - yP)).tolist()
+		
+	o_d = {'median_abs_err': np.median( cv_score_le),
+		   'mean_abs_err': np.mean( cv_score_le),
+		   'std_abs_err': np.std( cv_score_le), # this can be std(err)
+		   'list': cv_score_le,
+		   'ci': "t.b.d",
+		   'yVp': X.tolist()}
+	
+	return o_d
+
+
 def mdae_no_regression( xM, yV, disp = False, ldisp = False):
 	"""
 	Median absloute error (Mdae) is calculated without any (linear) regression.
@@ -526,214 +592,6 @@ def mdae_no_regression( xM, yV, disp = False, ldisp = False):
 	ae_l = [ np.abs(x - y) for x, y in zip(xM_a[:,0], yV_a[:, 0])]
 
 	return np.median( ae_l)
-
-
-def cv_LinearRegression_A( xM, yV, s_l):
-	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = A
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		print(A_molw_train.shape, yV[ train, 0].shape)
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l	
-
-def cv_LinearRegression_Asupervising( xM, yV, s_l):
-	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		#print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = A
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		print(A_molw_train.shape, yV[ train, 0].shape)
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l	
-
-def cv_LinearRegression_Asupervising_molw( xM, yV, s_l):
-	
-	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = jchem.add_new_descriptor( A, molw_l)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-def cv_Ridge_Asupervising_molw( xM, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = jchem.add_new_descriptor( A, molw_l)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-def cv_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( len(s_l), n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM1_shuffle = np.concatenate( (xM1[ train, :], xM1[ test, :]), axis = 0)
-		xM2_shuffle = np.concatenate( (xM2[ train, :], xM2[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A1_redundant = j3x.jpyx.calc_tm_sim_M( xM1_shuffle)
-		A1 = A1_redundant[ :, :len(train)]
-		A2_redundant = j3x.jpyx.calc_tm_sim_M( xM2_shuffle)
-		A2 = A2_redundant[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-		molwV = np.mat( molw_l).T
-
-		#A_molw = jchem.add_new_descriptor( A, molw_l)
-		print(A1.shape, A2.shape, molwV.shape)
-		# A_molw = np.concatenate( (A1, A2, molwV), axis = 1)
-		A_molw = np.concatenate( (A1, A2), axis = 1)
-		print(A_molw.shape)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
-
-def cv_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( len(s_l), n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM1_shuffle = np.concatenate( (xM1[ train, :], xM1[ test, :]), axis = 0)
-		xM2_shuffle = np.concatenate( (xM2[ train, :], xM2[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A1_redundant = j3x.jpyx.calc_tm_sim_M( xM1_shuffle)
-		A1 = A1_redundant[ :, :len(train)]
-		A2_redundant = j3x.jpyx.calc_tm_sim_M( xM2_shuffle)
-		A2 = A2_redundant[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-		molwV = np.mat( molw_l).T
-
-		#A_molw = jchem.add_new_descriptor( A, molw_l)
-		print(A1.shape, A2.shape, molwV.shape)
-		A_molw = np.concatenate( (A1, A2, molwV), axis = 1)
-		print(A_molw.shape)
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
 
 def gs_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha_l):
 	"""
@@ -762,39 +620,6 @@ def gs_Ridge_Asupervising( xM, yV, s_l, alpha_l):
 		r2_l = cv_Ridge_Asupervising( xM, yV, s_l, alpha)
 		r2_l2.append( r2_l)
 	return r2_l2
-
-def cv_Ridge_Asupervising( xM, yV, s_l, alpha):
-	
-	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	r2_l = list()
-	
-	for train, test in kf5:
-		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
-		# print xM_shuffle.shape
-
-		A_all = j3x.jpyx.calc_tm_sim_M( xM_shuffle)
-		A = A_all[ :, :len(train)]
-		#print 'A.shape', A.shape
-
-		s_l_shuffle = [s_l[x] for x in train] #train
-		s_l_shuffle.extend( [s_l[x] for x in test] ) #test
-		molw_l = jchem.rdkit_molwt( s_l_shuffle)
-
-		A_molw = A
-
-		A_molw_train = A_molw[:len(train), :]
-		A_molw_test = A_molw[len(train):, :]
-
-		#print A_molw_train.shape, yV[ train, 0].shape
-		lr.fit( A_molw_train, yV[ train, 0])
-
-		#print A_molw_test.shape, yV[ test, 0].shape
-		r2_l.append( lr.score( A_molw_test, yV[ test, 0]))
-
-	print('R^2 mean, std -->', np.mean( r2_l), np.std( r2_l))
-
-	return r2_l
 
 def gs_RidgeByLasso_kf_ext( xM, yV, alphas_log_l):
 
@@ -1192,6 +1017,59 @@ def gs_Ridge( xM, yV, alphas_log = (1, -1, 9), n_folds = 5, n_jobs = -1):
 
 	return gs
 
+def gsLOO( method, xM, yV, alphas_log = (1, -1, 9), n_jobs = 1, scores = "MedAE", disp = True, graph = False):
+	"""
+	all grid search results 
+	input
+	======
+	scoring: string 
+	'r2', '', 'mean_absolute_error‘, 'mean_squared_error’
+
+	"""
+	X, y = map( np.array, [xM, yV])
+	print(X.shape, y.shape)
+
+	clf = linear_model.Ridge()
+	#parmas = {'alpha': np.logspace(1, -1, 9)}
+	alpha_l = np.logspace( *alphas_log)
+	df_l = list()
+	for idx, alpha in enumerate(alpha_l): 
+		yp = cvLOO( method, X, y, alpha, n_jobs = n_jobs, graph = False)
+
+		df = pd.DataFrame()
+		df["idx(alpha)"] = [idx] * y.shape[0]
+		df["alpha"] = [alpha] * y.shape[0]	
+		df["y"] = y
+		df["yp"] = yp
+		df["e"] = y - yp
+		df["abs(e)"] = df["e"].abs()
+		df_l.append( df)
+		if disp:
+			print( idx, "Alpha = {0}: MedAE = {1}".format( alpha, df["abs(e)"].median()))
+			#print( df.describe())
+
+	all_df = pd.concat( df_l, ignore_index = True)
+	g_df = all_df.groupby("idx(alpha)")
+	
+	if scores == "MedAE":
+		best_idx = g_df["abs(e)"].median().argmin()
+	elif scores == "std":
+		best_idx = g_df["e"].median().argmin()
+
+	all_df["Best"] = [False] * all_df.shape[0]
+	all_df.loc[ all_df["idx(alpha)"] == best_idx, "Best"] = True
+
+	best_df = all_df[ all_df["idx(alpha)"] == best_idx].reset_index( drop = True)
+
+	if disp:
+		print( "Best idx(alpha) and alpha:", (best_idx, best_df['alpha'][0]))
+
+	if graph:
+		jutil.regress_show4( best_df['y'], best_df['yp'])
+
+	return all_df
+
+
 def gs_Ridge_BIKE( A_list, yV, XX = None, alphas_log = (1, -1, 9), n_folds = 5, n_jobs = -1):
 	"""
 	As is a list of A matrices where A is similarity matrix. 
@@ -1248,6 +1126,7 @@ def _cv_r0( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, gr
 
 	return yV_pred
 
+
 def cv( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph = True, shuffle = True):
 	"""
 	method can be 'Ridge', 'Lasso'
@@ -1265,14 +1144,14 @@ def cv( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph 
 
 	return yV_pred
 
-def _cv_LOO_r0( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = True):
+def cvLOO( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = True):
 	"""
 	method can be 'Ridge', 'Lasso'
 	cross validation is performed so as to generate prediction output for all input molecules
 	"""	
 	n_folds = xM.shape[0]
 
-	print(xM.shape, yV.shape)
+	# print(xM.shape, yV.shape)
 
 	clf = getattr( linear_model, method)( alpha = alpha)
 	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds)
@@ -1283,7 +1162,6 @@ def _cv_LOO_r0( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = Tru
 		jutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
 	return yV_pred	
-
 
 def cv_Ridge_BIKE( A_list, yV, XX = None, alpha = 0.5, n_folds = 5, n_jobs = -1, grid_std = None):
 
