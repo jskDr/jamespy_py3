@@ -27,7 +27,7 @@ gcc -L/home/jamessungjinkim/Dropbox/Aspuru-Guzik/python_lab/jamespy-Wall test_jc
 
 ext_modules=[
 	Extension("jpyx",
-		sources=["*.pyx", "jc.c"],
+		sources=["jpyx.pyx", "jpyx_c.c"],
 		include_dirs=[np.get_include()])
 ]
  

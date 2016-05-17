@@ -1,6 +1,8 @@
 # Py3
 
 import numpy as np
+import pandas as pd
+from j3x import jamc_ch_pyx
 
 ## Signal generation
 def gen_m( y):
@@ -78,3 +80,109 @@ def get_Xy( L = 500, y_l = range(5), SNRdB = 8, f0T = 0, N = 250):
 	return X, y	
 
 getXy_m5 = get_Xy 
+
+def get_Xy_CSS( L = 250, y_l = range(5), SNRdB = 8, f0T = 0.0, N = 250):
+	"""
+	Now, jamc_ch_pyx.get_Xy() supports no noise case (the ideal case) by 
+	setting SNRdB as None instead of specifying a certain value.
+	"""
+	# Nm = 5
+	# N = 250
+	if SNRdB is not None:
+		X_org, y= jamc_ch_pyx.get_Xy( L = L, y_l = y_l, SNRdB = SNRdB, f0T = f0T, N = N) 
+	else:
+		X_org, y= jamc_ch_pyx.get_Xy_nonoise( L = L, y_l = y_l, f0T = f0T, N = N) 		
+	#X_org, y= jamc.getXy( f0T = 0.0, SNRdB = 100, L = 5000) 
+	print(X_org.shape, y.shape)
+
+	X_abs = np.abs( X_org)
+	X_angle = np.mod( np.angle( X_org) / (2*np.pi), 1.0)
+
+	X_abs.sort( axis = 1)
+	X_angle.sort( axis = 1)
+
+	X = np.concatenate( [X_abs, X_angle], axis = 1)
+	print( X_abs.shape, X_abs.dtype)
+	print( X_angle.shape, X_angle.dtype)
+	print( X.shape)
+
+	return X, y
+
+def get_Xy_CSS_fading( L = 250, y_l = range(5), SNRdB = None, f0T = 0.0, N = 250, isfading = False):
+	"""
+	Now, jamc_ch_pyx.get_Xy() supports no noise case (the ideal case) by 
+	setting SNRdB as None instead of specifying a certain value.
+	"""
+	# Nm = 5
+	# N = 250
+	X_org, y= jamc_ch_pyx.get_Xy_fading( L = L, y_l = y_l, SNRdB = SNRdB, f0T = f0T, N = N, isfading = isfading) 		
+	#X_org, y= jamc.getXy( f0T = 0.0, SNRdB = 100, L = 5000) 
+	print(X_org.shape, y.shape)
+
+	X_abs = np.abs( X_org)
+	X_angle = np.mod( np.angle( X_org) / (2*np.pi), 1.0)
+
+	X_abs.sort( axis = 1)
+	X_angle.sort( axis = 1)
+
+	X = np.concatenate( [X_abs, X_angle], axis = 1)
+	print( X_abs.shape, X_abs.dtype)
+	print( X_angle.shape, X_angle.dtype)
+	print( X.shape)
+
+	return X, y
+
+if __name__ == '__main__':
+	import sys
+
+	print('Number of arguments:', len(sys.argv), 'arguments.')
+	print('Argument List:', str(sys.argv))
+	print()
+
+	n_argv = len(sys.argv)
+	if n_argv != 7:
+		print("Usage")
+		print("-----")
+		print("python3 jamc_ch.py L y_l SNRdB f0T N")
+		print("1. L (int) - #data for each modulation")
+		print("2. y_l ([int...]- list of modulation index")
+		print("   0=BPSK, 1=QPSK, 2=8PSK, 3=16QAM, 4=64QAM")
+		print("3. SNRdB (float) - SNR in dB scale")
+		print("4. f0T (float) - Normalized frequency error (0<=f0T<=1)")
+		print("5. N (int) - # of symbols (#feature)")
+		print("6. fname_out (string) - file name of generated channel data")
+		print()
+		print("E.g.")
+		print("python3 jamc_ch.py 500 [0,1,2,3,4] 8 0.0 250 data.csv")
+		print()
+	else:
+		L = int( sys.argv[1])
+		print("  L (int) - #data for each modulation:", L)
+
+		y_l = eval( sys.argv[2])
+		print("  y_l ([int...]) - modulation index list:", y_l)
+
+		SNRdB = float( sys.argv[3])
+		print("  SNRdB (float) - SNR in dB scale:", SNRdB)
+
+		f0T = float( sys.argv[4])
+		print("  f0T (float) - Normalized frequency error (0<=f0T<=1):", f0T)
+
+		N = int( sys.argv[5])
+		print("  N (int) - # of symbols (#feature):", N)
+
+		fname_out = sys.argv[6]
+		print("  fname_out (string) - file name of generated channel data:", fname_out)
+
+		X, y = get_Xy( L = L, y_l = y_l, SNRdB = SNRdB, f0T = f0T, N = N)
+
+		x_c = ["x%d" % ix for ix in range( X.shape[1])]
+		Xy_df = pd.DataFrame( X, columns=x_c)
+		Xy_df["y"] = y
+		Xy_df.to_csv("data.csv", index = False)
+
+		print("-----------------")
+		print("Your data with X{0}, y{1} are saved to a file of {2}".format( 
+			X.shape, y.shape, fname_out))
+
+

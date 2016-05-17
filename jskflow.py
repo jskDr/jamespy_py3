@@ -1,5 +1,6 @@
 # Py3
 # james files for skflow
+# import tensorflow.contrib.learn as skflow
 
 from sklearn import metrics
 import kutil

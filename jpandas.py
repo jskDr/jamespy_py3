@@ -2141,7 +2141,7 @@ def pd_aq1x( dfr_rafa, fg_l = [ '', '(C(=O)O)', '(N(C)C)', '(P(=O)(O)O)', '(O)',
 		fg2_l.extend( [x, x])
 	# print fg2_l
 	pdw['R-Group'] = fg2_l
-	pdw['R-Position'] = [1, 2] * (pdw.shape[0]/2)
+	pdw['R-Position'] = [1, 2] * int(pdw.shape[0]/2)
 
 	pdw = pdw[1:] #No attachment cases is reduced to only one case
 	pdw.to_csv( 'sheet/aq1x11.csv', index = False)

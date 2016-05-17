@@ -22,7 +22,7 @@ sns.set()
 
 # April 24, 2016
 from sklearn import cross_validation, metrics
-import skflow
+import tensorflow.contrib.learn as skflow
 
 import jpandas as jpd
 import jchem, jgrid
