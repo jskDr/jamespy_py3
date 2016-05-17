@@ -1,0 +1,6 @@
+# Python complied files
+*.so
+*.pyc
+*.o
+__pycache__/
+build/
