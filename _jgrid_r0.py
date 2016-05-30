@@ -1178,10 +1178,29 @@ def show_gs_alpha( grid_scores):
 Specialized code for extract results
 """
 
+def scoring_function( estimator, X, y):
+	yp = estimator.predict( X)
+	return metrics.mean_squared_error( y, yp)
+
+def make_score( fn_score, greater_is_better=True):
+	def scoring_function( estimator, X, y):
+		yp = estimator.predict( X)
+		return fn_score( y, yp)
+	return scoring_function
+
 def make_scoring( scoring):
-	"""
-	Score is reversed if greater_is_better is False.
-	"""
+	if scoring == 'r2':
+		return make_scorer( metrics.r2_score)
+	elif scoring == 'mean_absolute_error':
+		return make_scorer( metrics.mean_absolute_error, greater_is_better=False)
+	elif scoring == 'mean_squared_error':
+		return make_scorer( metrics.mean_squared_error, greater_is_better=False)
+	elif scoring == 'median_absolute_error':
+		return make_scorer( metrics.median_absolute_error, greater_is_better=False)
+	else:
+		raise ValueError("Not supported scoring")
+
+def _make_scoring_r0( scoring):
 	if scoring == 'r2':
 		return metrics.make_scorer( metrics.r2_score)
 	elif scoring == 'mean_absolute_error':
@@ -1200,7 +1219,6 @@ def gs_Ridge( xM, yV, alphas_log = (1, -1, 9), n_folds = 5, n_jobs = -1, scoring
 	-------------
 	scoring: mean_absolute_error, mean_squared_error, median_absolute_error, r2
 	"""
-	print( 'If scoring is not r2 but error metric, output score is revered for scoring!')
 	print(xM.shape, yV.shape)
 
 	clf = linear_model.Ridge()
@@ -1273,9 +1291,6 @@ def cv( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph 
 	"""
 	method can be 'Ridge', 'Lasso'
 	cross validation is performed so as to generate prediction output for all input molecules
-	Return
-	--------
-	yV_pred
 	"""	
 	print(xM.shape, yV.shape)
 

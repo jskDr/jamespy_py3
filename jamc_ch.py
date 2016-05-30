@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 from j3x import jamc_ch_pyx
+import kgrid
 
 ## Signal generation
 def gen_m( y):
@@ -186,3 +187,107 @@ if __name__ == '__main__':
 			X.shape, y.shape, fname_out))
 
 
+def amc_fading( SNRdB, fading_type = "block", kernel = 'rbf', disp = True):
+	Nm = 5
+	N = 250
+	X, y = jamc_ch_pyx.CH( L = 100, y_l = range( Nm), SNRdB = SNRdB, f0T = 0.0, N = N, fading_type = fading_type).run().get_Xy_CSS()
+
+	params = {'C': np.logspace(0, 5, 6), 'kernel': [kernel]}
+	gs = kgrid.gs_SVC( X, y, params)
+	if disp:
+		print( gs.grid_scores_)
+	return gs.best_score_
+
+def amc_fading_l( SNRdB_l, fading_type = "block", kernel = 'rbf', disp = True):
+	def amc_fading_type( SNRdB):
+		return amc_fading( SNRdB, fading_type = fading_type,  kernel = kernel, disp = disp)
+
+	Pc_map = map( amc_fading_type, SNRdB_l)
+	Pc_l = list(Pc_map)
+
+	Pc_df = pd.DataFrame() 
+	Pc_df["SNRdB"] = SNRdB_l
+	Pc_df["Pc"] = Pc_l
+	Pc_df["fading type"] = fading_type
+	return Pc_df
+
+def amc_fading_NCSS( SNRdB, fading_type = "block", disp = True):
+	"""
+	Normalized CSS is used.
+	"""
+	Nm = 5
+	N = 250
+	X, y = jamc_ch_pyx.CH( L = 100, y_l = range( Nm), SNRdB = SNRdB, f0T = 0.0, N = N, fading_type = fading_type).run().get_Xy_CSS_norm()
+
+	params = {'C': np.logspace(0, 5, 6)}
+	gs = kgrid.gs_SVC( X, y, params)
+	if disp:
+		print( gs.grid_scores_)
+	return gs.best_score_
+
+def amc_fading_NCSS_l( SNRdB_l, fading_type = "block", disp = True):
+	def amc_fading_type( SNRdB):
+		return amc_fading_NCSS( SNRdB, fading_type = fading_type, disp = disp)
+
+	Pc_map = map( amc_fading_type, SNRdB_l)
+	Pc_l = list(Pc_map)
+
+	Pc_df = pd.DataFrame() 
+	Pc_df["SNRdB"] = SNRdB_l
+	Pc_df["Pc"] = Pc_l
+	Pc_df["fading type"] = fading_type
+	return Pc_df
+
+def amc_fading_NCSS_abs( SNRdB, fading_type = "block", disp = True):
+	"""
+	Normalized CSS is used.
+	"""
+	Nm = 5
+	N = 250
+	X, y = jamc_ch_pyx.CH( L = 100, y_l = range( Nm), SNRdB = SNRdB, f0T = 0.0, N = N, fading_type = fading_type).run().get_Xy_CSS_norm_abs()
+
+	params = {'C': np.logspace(0, 5, 6)}
+	gs = kgrid.gs_SVC( X, y, params)
+	if disp:
+		print( gs.grid_scores_)
+	return gs.best_score_
+
+def amc_fading_NCSS_abs_l( SNRdB_l, fading_type = "block", disp = True):
+	def amc_fading_type( SNRdB):
+		return amc_fading_NCSS_abs( SNRdB, fading_type = fading_type, disp = disp)
+
+	Pc_map = map( amc_fading_type, SNRdB_l)
+	Pc_l = list(Pc_map)
+
+	Pc_df = pd.DataFrame() 
+	Pc_df["SNRdB"] = SNRdB_l
+	Pc_df["Pc"] = Pc_l
+	Pc_df["fading type"] = fading_type
+	return Pc_df
+
+def amc_fading_NCSS_angle( SNRdB, fading_type = "block", disp = True):
+	"""
+	Normalized CSS is used.
+	"""
+	Nm = 5
+	N = 250
+	X, y = jamc_ch_pyx.CH( L = 100, y_l = range( Nm), SNRdB = SNRdB, f0T = 0.0, N = N, fading_type = fading_type).run().get_Xy_CSS_norm_angle()
+
+	params = {'C': np.logspace(0, 5, 6)}
+	gs = kgrid.gs_SVC( X, y, params)
+	if disp:
+		print( gs.grid_scores_)
+	return gs.best_score_
+
+def amc_fading_NCSS_angle_l( SNRdB_l, fading_type = "block", disp = True):
+	def amc_fading_type( SNRdB):
+		return amc_fading_NCSS_abs( SNRdB, fading_type = fading_type, disp = disp)
+
+	Pc_map = map( amc_fading_type, SNRdB_l)
+	Pc_l = list(Pc_map)
+
+	Pc_df = pd.DataFrame() 
+	Pc_df["SNRdB"] = SNRdB_l
+	Pc_df["Pc"] = Pc_l
+	Pc_df["fading type"] = fading_type
+	return Pc_df

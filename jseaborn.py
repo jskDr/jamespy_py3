@@ -143,10 +143,10 @@ def _pdi_gs_full_r1( method, xM_l, yV, X_concat = None, mode = "Ridge", expensio
     return pdi
 
 def pdi_gs_full( method, xM_l, yV, X_concat = None, mode = "Ridge", expension = False, 
-                        n_folds=20, alphas_log=(-3, 2, (2-(-3))*2+1), n_jobs = 1):
+                        n_folds=20, alphas_log=(-3, 2, (2-(-3))*2+1), n_jobs = 1, scoring = 'r2'):
     if mode == "Ridge":
         xM = np.concatenate( xM_l, axis = 1)
-        gs = jgrid.gs_Ridge( xM, yV, alphas_log, n_folds=n_folds, n_jobs = n_jobs)
+        gs = jgrid.gs_Ridge( xM, yV, alphas_log, n_folds=n_folds, n_jobs = n_jobs, scoring=scoring)
     elif mode == "BIKE_Ridge":
         # print "BIKE_Ridge mode is working now."
         A_l = xM_l
