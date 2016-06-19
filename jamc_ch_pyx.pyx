@@ -434,7 +434,7 @@ class CH_noise_norm( CH):
 			ch = ch_n
 		elif fading_type == "block": 
 			ch = (np.random.randn() + 1j*np.random.randn()) / np.sqrt(2)	
-		else fading_type in ["awgn", "no"]:
+		else: #fading_type in ["awgn", "no"]:
 			ch = 1.0
 
 		if SNRdB is not None:
@@ -446,7 +446,7 @@ class CH_noise_norm( CH):
 			else:
 				# The variance of the signal becomes to be fixed one except fading variation
 				g_n /= alpha
-				
+
 			r_n = np.exp( 1j*f0T*np.arange(N)) * (ch * s_n) + g_n
 		else:
 			r_n = np.exp( 1j*f0T*np.arange(N)) * (ch * s_n)	

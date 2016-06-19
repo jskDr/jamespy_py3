@@ -33,7 +33,7 @@ class MyModel():
 		self.gen_w()
 
 	def gen_w(self, Nf = 10):
-		self.my_w = np.random.randn( Nf)
+		self.my_w = np.random.randn( Nf) / np.sqrt( Nf)
 		return self
 
 	def modeling( self, Nx = 1000):
@@ -1135,7 +1135,9 @@ class DNN_Layer( DNN):
 		For DNN_layer, not only pred but also layer1, layer2 will be saved. 
 		"""
 		x, weights, biases = self.x, self.weights, self.biases
+
 		layer1, layer2, pred = open_multilayer_perceptron(x, weights, biases)
+
 		self.layer1, self.lyaer2, self.pred = layer1, layer2, pred
 
 class DNN_Layer_Dropout( DNN_Layer):
@@ -1259,3 +1261,25 @@ class SDNN_Layer_Dropout( DNN_Layer_Dropout):
 				print( "R2 of test data:", r2)
 
 		print( 'x_1 Optimization is completed.')
+
+	def predict_all( self, X):
+		"""
+		Input
+		-----
+		X: [,#input]
+		Input vector with #input features
+
+		Return 
+		------
+		all_d: dict
+		all_d['l1'], all_d['l2'], all_d['y']
+		"""
+		sess, x, keep_prob = self.sess, self.x, self.keep_prob
+		layer1, layer2, pred = self.layer1, self.layer2, self.pred
+
+		all_d = dict()
+		all_d['y'] = sess.run( pred, feed_dict={x: X, keep_prob: 1.0})
+		all_d['l2'] = sess.run( layer2, feed_dict={x: X, keep_prob: 1.0})
+		all_d['l1'] = sess.run( layer1, feed_dict={x: X, keep_prob: 1.0})
+
+		return all_d
