@@ -1310,6 +1310,9 @@ def _cv_LOO_r0( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = Tru
 
 
 def cv_Ridge_BIKE( A_list, yV, XX = None, alpha = 0.5, n_folds = 5, n_jobs = -1, grid_std = None):
+	"""
+	Older version than cv_Ridge_BIKE
+	"""
 
 	clf = binary_model.BIKE_Ridge( A_list, XX, alpha = alpha)
 	ln = A_list[0].shape[0] # ls is the number of molecules.

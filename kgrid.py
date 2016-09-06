@@ -742,6 +742,23 @@ def gs_SVC( xM, yVc, params, n_folds = 5):
 
 	return gs
 
+def gs_LinearSVC( xM, yVc, params, n_folds = 5):
+	"""
+	Since classification is considered, we use yVc which includes digital values 
+	whereas yV can include float point values.
+	"""
+
+	print(xM.shape, yVc.shape)
+
+	clf = svm.LinearSVC()
+	#parmas = {'alpha': np.logspace(1, -1, 9)}
+	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	gs = grid_search.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
+
+	gs.fit( xM, yVc)
+
+	return gs
+
 
 def gs_SVRByLasso_kf_ext( xM, yV, alphas_log, svr_params):
 

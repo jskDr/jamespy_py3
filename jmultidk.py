@@ -284,7 +284,7 @@ def set_alpha_log( a_st = -2, a_ed = 2, a_n = 2):
 	a_N = (a_ed - a_st)*a_n + 1
 	return (a_st, a_ed, a_N)
 
-class MultiDK( object):
+class MultiDK():
 	def __init__(self, fname = 'sheet/wang3705_with_logP.csv'):
 		self.fname_core = fname[:-14] 
 		self.pdr = pd.read_csv( fname)
@@ -587,7 +587,7 @@ class MultiDK_DL( MultiDK):
 		is included or not. 
 		Default case, all descriptors will be aggreagated.
 		"""
-		super().set_X_M2()
+		self.set_X_M2()
 		
 		#mode_l = [int(x) for x in ds_mode]
 		mode_key = ["MFP", "MACCS", "MolW2", "LASA", "logP"]
@@ -616,4 +616,27 @@ class MultiDK_DL( MultiDK):
 
 		return self
 
+
+#############################
+# August 1, 2016
+#############################
+
+class MultiDK_DLA( MultiDK): # Underdevelopment
+	"""
+	use setA appropriately
+	I changed the base matrix as MultiDK instead of MultiDK_DL
+	since MultiDK is more simlar to the target class.
+	"""
+	def __init__( self, fname = 'sheet/wang3310_with_logP.csv'):
+		"""
+		- A will be used instead of A
+		- Need to change learning since training and testing should be 
+		  differently calculated for A.
+		"""
+		super().__init__( fname = fname)
+
+	def set_data(self):
+		self.set_xy()
+		self.set_X()
+		self.set_A() 
 
