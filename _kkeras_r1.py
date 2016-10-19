@@ -1,6 +1,4 @@
 # kkeras.py
-# Kkeras is the most recent version and kkeras_rx versions aer old versions.
- 
 import numpy as np
 #np.random.seed(1337)  # for reproducibility
 
@@ -88,19 +86,6 @@ class MLPC():
 		score = model.evaluate(X_test, Y_test, verbose=0)
 
 		return score[1]
-
-	def predict( self, X_test):
-		model = self.model
-		nb_classes = self.nb_classes
-
-		#Y_test = np_utils.to_categorical(y_test, nb_classes)
-
-		X_test = self.X_reshape( X_test)
-		Y_pred = model.predict(X_test, verbose=0)
-		y_pred = np_utils.categorical_probas_to_classes( Y_pred)
-
-		return y_pred
-
 
 class CNNC( MLPC):
 	def __init__(self, n_cv_flt = 2, n_cv_ln = 3, cv_activation = 'relu', l = [49, 30, 10, 3]):
@@ -202,104 +187,6 @@ class CNNC_Name( CNNC):
 	def get_c_wb( self):
 		self.self_c_wb()
 		return self.c_w, self.c_b
-
-class CNNC_Name_Border( CNNC):	
-	def __init__(self, n_cv_flt = 2, n_cv_ln = 3, cv_activation = 'relu', l = [49, 30, 10, 3],
-					border_mode = 'same'):
-		"""
-		Convolutional neural networks 
-		"""
-		self.border_mode = border_mode
-
-		super().__init__(n_cv_flt = n_cv_flt, n_cv_ln = n_cv_ln, 
-			cv_activation = cv_activation, l = l)
-
-
-	def modeling(self, l = [49, 30, 10, 3]):
-		"""
-		generate model
-		"""
-		border_mode = self.border_mode
-		self.c_name = 'conv'
-
-		n_cv_flt, n_cv_ln = self.n_cv_flt, self.n_cv_ln
-		cv_activation = self.cv_activation
-
-		model = Sequential()
-
-		# Direct: input_shape should be (l,0) not (l)
-		# if l, it assume a scalar for an input feature.
-		#model.add(Dense( l[1], input_shape=(l[0],))) 
-	
-		# Convolution
-		print( "n_cv_flt, n_cv_ln, cv_activation", n_cv_flt, n_cv_ln, cv_activation)
-		#model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
-		#	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
-		model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
-			border_mode=border_mode, input_shape=(l[0],1), name = self.c_name))
-		model.add(Flatten())
-		model.add(Dense( l[1]))
-
-		model.add(Activation('relu'))
-		model.add(Dropout(0.2))
-		model.add(Dense( l[2]))
-		model.add(Activation('relu'))
-		model.add(Dropout(0.2))
-		model.add(Dense( l[3]))
-		model.add(Activation('softmax'))
-
-		self.layer_dict = dict([(layer.name, layer) for layer in model.layers])
-
-		return model
-
-	def get_layer( self, name):
-		return self.layer_dict[ name]
-
-	def self_c_wb( self):
-		self.c_w, self.c_b = self.get_layer( self.c_name).get_weights()
-		return self
-
-	def get_c_wb( self):
-		self.self_c_wb()
-		return self.c_w, self.c_b
-
-class MLPC_Name( MLPC):
-	def modeling(self, l = [49, 30, 10, 3]):
-		"""
-		generate model
-		"""
-		self.c_name = 'dense'
-
-		model = Sequential()
-		# Direct: input_shape should be (l,0) not (l)
-		# if l, it assume a scalar for an input feature.
-		#model.add(Dense( l[1], input_shape=(l[0],))) 
-	
-		# DNN
-		model.add(Dense( l[1], input_shape=(l[0],), name = self.c_name))
-		model.add(Activation('relu'))
-		model.add(Dropout(0.2))
-		model.add(Dense( l[2]))
-		model.add(Activation('relu'))
-		model.add(Dropout(0.2))
-		model.add(Dense( l[3]))
-		model.add(Activation('softmax'))
-
-		self.layer_dict = dict([(layer.name, layer) for layer in model.layers])
-
-		return model
-
-	def get_layer( self, name):
-		return self.layer_dict[ name]
-
-	def self_c_wb( self):
-		self.c_w, self.c_b = self.get_layer( self.c_name).get_weights()
-		return self
-
-	def get_c_wb( self):
-		self.self_c_wb()
-		return self.c_w, self.c_b
-
 
 class MLPR(): # Regression
 	"""

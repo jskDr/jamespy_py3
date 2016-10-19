@@ -883,6 +883,24 @@ def gs_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1):
 
 	return gs
 
+
+def cv_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1, grid_std = None, graph = True, shuffle = True):
+	"""
+	method can be 'Ridge', 'Lasso'
+	cross validation is performed so as to generate prediction output for all input molecules
+	"""	
+	print(xM.shape, yV.shape)
+
+	clf = svm.SVR( **svr_params)
+	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
+	yV_pred = cross_validation.cross_val_predict( clf, xM, yV.A1, cv = kf_n, n_jobs = n_jobs)
+
+	if graph:
+		print('The prediction output using cross-validation is given by:')
+		jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+
+	return yV_pred
+
 def _gs_SVC_r0( xM, yVc, params):
 	"""
 	Since classification is considered, we use yVc which includes digital values 

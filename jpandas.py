@@ -2397,3 +2397,17 @@ def list_or( pdr, cn, c_l):
 		cond |= pdr[ cn] == c
 	
 	return cond
+
+def pd_show_dupset_by( df, subset = "SLN"):
+	df_dup = df.duplicated( subset)
+	dup_set = np.where(df_dup==True)[0]
+	print("Dupplication set")
+	print( dup_set)
+	df_l = []
+	for i, s in enumerate(dup_set):
+		df_dup = df[ df[subset] == df[subset][s]].copy()
+		df_dup["Pair"] = i
+		df_l.append( df_dup)
+	df_pair = pd.concat( df_l)
+	# Return full column information without abbrevation. 
+	return df_pair

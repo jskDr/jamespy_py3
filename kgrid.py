@@ -11,6 +11,85 @@ from operator import itemgetter
 import jutil
 from jsklearn import binary_model
 
+def gs_np(X, Y, alphas_log=(-3, 3, 7), method = "Lasso", n_folds=5, disp = False):
+    """
+    Return
+    ------
+    df, pd.DataFrame
+    All results are included in df
+
+    df_avg, pd.DataFrame
+    Average results are included in df_avg
+
+    df_best, pd.DataFrame
+    The best of the average results is df_best
+
+    Usage
+    -----
+    df, df_avg, df_best = gs_np( X, Y)
+    """
+    df_l = list()
+    df_avg_l = list()
+    for (alpha_idx, alpha) in enumerate( np.logspace(*alphas_log)):
+        model = getattr(linear_model, method)(alpha=alpha)
+        kf5 = cross_validation.KFold( X.shape[0], n_folds=n_folds, shuffle=True)
+        r2_l = []
+        for train, test in kf5:
+            model.fit( X[train,:], Y[train,:])
+            r2 = model.score( X[test,:], Y[test,:])
+            r2_l.append( r2)
+            
+        # make a dataframe
+        df_i = pd.DataFrame()
+        df_i["r2"] = r2_l
+        df_i["unit"] = range( len( r2_l))
+        df_i["method"] = method
+        df_i["n_folds"] = n_folds
+        df_i["alpha"] = alpha
+        df_i["alpha_idx"] = alpha_idx
+        df_l.append( df_i)
+        
+        df_avg_i = pd.DataFrame()
+        df_avg_i["E[r2]"] = [np.mean( r2_l)]
+        df_avg_i["std(r2)"] = [np.std( r2_l)]
+        df_avg_i["method"] = method
+        df_avg_i["n_folds"] = n_folds
+        df_avg_i["alpha"] = alpha
+        df_avg_i["alpha_idx"] = alpha_idx
+        df_avg_l.append( df_avg_i)
+        if disp:
+            print( "alpha=", alpha)
+            print( r2_l)
+            print('Average, std=', np.mean(r2_l), np.std(r2_l))
+            print('-------------')
+            
+    df = pd.concat( df_l, ignore_index=True) 
+    df_avg = pd.concat( df_avg_l, ignore_index=True)
+    
+    # dataframe for the best
+    idx_best = np.argmax( df_avg["E[r2]"].values)
+    df_best = df_avg.loc[[idx_best], :].copy()
+    
+    return df, df_avg, df_best
+
+def gs_numpy( method, X, Y, alphas_log = (-1, 1, 9), n_folds=5, n_jobs = -1, disp = True):
+	"""
+	Grid search method with numpy array of X and Y
+	Previously, np.mat are used for compatible with Matlab notation.	
+	"""
+	if disp:
+		print( X.shape, Y.shape)
+
+	clf = getattr( linear_model, method)()
+	parmas = {'alpha': np.logspace( *alphas_log)}
+	kf5 = cross_validation.KFold( X.shape[0], n_folds = n_folds, shuffle=True)
+	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
+
+	gs.fit( X, Y)
+
+	return gs
+
+
 def gs_Lasso( xM, yV, alphas_log = (-1, 1, 9), n_folds=5, n_jobs = -1):
 
 	print(xM.shape, yV.shape)
@@ -708,6 +787,23 @@ def gs_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1):
 
 	return gs
 
+def cv_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1, grid_std = None, graph = True, shuffle = True):
+	"""
+	method can be 'Ridge', 'Lasso'
+	cross validation is performed so as to generate prediction output for all input molecules
+	"""	
+	print(xM.shape, yV.shape)
+
+	clf = svm.SVR( **svr_params)
+	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
+	yV_pred = cross_validation.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
+
+	if graph:
+		print('The prediction output using cross-validation is given by:')
+		jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+
+	return yV_pred
+
 def _gs_SVC_r0( xM, yVc, params):
 	"""
 	Since classification is considered, we use yVc which includes digital values 
@@ -1262,3 +1358,9 @@ def gs( method, xM, yV, alphas_log):
 		return gs_Ridge( xM, yV, alphas_log)	
 	else:
 		raise NameError("The method of {} is not supported".format( method))
+
+def gscvLOO( xM, yV, mode = "Lasso", graph = True):
+	X, y = np.array( xM), np.array( yV.A1)
+	df_reg = gsLOO( mode, X, y, (-1,1,6), graph = graph)
+	yp_reg = df_reg[ df_reg.Best == True]["yp"].values
+	return yp_reg
