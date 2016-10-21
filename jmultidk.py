@@ -530,6 +530,13 @@ class MultiDK():
 
 		return self
 
+	def set_XA( self):
+		self.set_xy()
+		self.set_X()
+		self.set_A()
+
+		return self
+
 #############################
 # April 24, 2016
 #############################
