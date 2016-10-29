@@ -1,7 +1,7 @@
 # Python 3
 # import pandalearn.pdlearn as pdl (or poodle)
 
-from sklearn import linear_model, grid_search, cross_validation
+from sklearn import linear_model, model_selection, cross_validation
 import pandas as pd
 
 def grid_scores( grid_scores_):
@@ -63,7 +63,7 @@ class DataFrame( pd.DataFrame):
 		print( 'Data is not saved since both fname and fname_out are not provided.')
 
 
-class GridSearchCV( grid_search.GridSearchCV):
+class GridSearchCV( model_selection.GridSearchCV):
 	def __init__(self, fname, estimator = None, param_grid = None, **kwargs):	
 		"""
 		estimator and param_grid can be values defined in csv. 

@@ -3,7 +3,7 @@ some utility which I made.
 Editor - Sungjin Kim, 2015-4-17
 """
 #Common library
-from sklearn import linear_model, svm, cross_validation, grid_search, metrics
+from sklearn import linear_model, svm, cross_validation, model_selection, metrics
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -866,7 +866,7 @@ def gs_Lasso( xM, yV, alphas_log = (-1, 1, 9)):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
 
 	gs.fit( xM, yV)
 
@@ -880,7 +880,7 @@ def gs_Lasso_norm( xM, yV, alphas_log = (-1, 1, 9)):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV)
 
@@ -985,7 +985,7 @@ def gs_Ridge( xM, yV, alphas_log = (1, -1, 9)):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
 
 	gs.fit( xM, yV)
 
@@ -999,7 +999,7 @@ def gs_Ridge( xM, yV, alphas_log = (1, -1, 9), n_folds = 5):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = 1)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = 1)
 
 	gs.fit( xM, yV)
 
@@ -1134,7 +1134,7 @@ def gs_SVR( xM, yV, svr_params):
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV.A1)
 
@@ -1253,7 +1253,7 @@ def gs_ElasticNet( xM, yV, en_params):
 
 	clf = linear_model.ElasticNet()
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, en_params, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, en_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV)
 

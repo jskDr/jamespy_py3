@@ -2269,7 +2269,8 @@ def file_subs( fname = 'sheet/wang3664_smiles.csv',
 		fname_p = fname[:-4] + '_' + p + '.csv'
 		print('Search results are saved to', fname_p)
 		pdw_r.to_csv( fname_p, index = False)
-		plt.show()
+		if graph:
+			plt.show()
 
 def pd_cxcalc_csv(rfile = 'quinones45.8p', sfile = 'quinones45.smiles'):
 	"""

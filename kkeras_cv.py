@@ -1,6 +1,6 @@
 # Keras for cv
 
-from sklearn import cross_validation
+from sklearn import model_selection
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -14,7 +14,7 @@ def cv_deep_learning_with_w1( X, y, nb_classes = 3, mode = "CNNC_Name",
 	param_d = {"n_cv_flt": 3, "n_cv_ln": 50, "cv_activation": "relu"}
 	"""
 	
-	kf = cross_validation.KFold(X.shape[0], 5, shuffle=True)
+	kf = model_selection.KFold(X.shape[0], 5, shuffle=True)
 	dcnn_score_l = []
 	c_wb_l = []
 	for tr, te in kf:
@@ -64,7 +64,7 @@ def cv_deep_learning_conv_out( X, y, nb_classes = 3, mode = "CNNC_Name",
 	param_d = {"n_cv_flt": 3, "n_cv_ln": 50, "cv_activation": "relu"}
 	"""
 	
-	kf = cross_validation.KFold(X.shape[0], 5, shuffle=True)
+	kf = model_selection.KFold(X.shape[0], 5, shuffle=True)
 	dcnn_score_l = []
 	c_wb_l = []
 	for tr, te in kf:
@@ -115,7 +115,7 @@ def cv_deep_learning_pred( X, y, nb_classes = 3, mode = "CNNC_Name",
 	param_d = {"n_cv_flt": 3, "n_cv_ln": 50, "cv_activation": "relu"}
 	"""
 	
-	kf = cross_validation.KFold(X.shape[0], 5, shuffle=True)
+	kf = model_selection.KFold(X.shape[0], 5, shuffle=True)
 	dcnn_score_l = []
 	c_wb_l = []
 	y_cv = np.copy( y)
@@ -182,7 +182,7 @@ def cv_deep_learning_tsplot( X, y, nb_classes = 3, mode = "CNNC_Name",
 	
 	for n_e in range( n_ensemble):
 		print("Index of Ensemble Iteration:", n_e)
-		kf = cross_validation.KFold(X.shape[0], 5, shuffle=True)
+		kf = model_selection.KFold(X.shape[0], 5, shuffle=True)
 		for tr, te in kf:
 			X_train, y_train = X[tr,:], y[tr]
 			X_test, y_test = X[te,:], y[te]

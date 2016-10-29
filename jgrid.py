@@ -2,7 +2,7 @@
 grid search codes for machine learning
 """
 
-from sklearn import cross_validation, cross_validation, grid_search, linear_model, svm, metrics
+from sklearn import cross_validation, cross_validation, model_selection, linear_model, svm, metrics
 import numpy as np
 import pandas as pd
 from operator import itemgetter
@@ -19,7 +19,7 @@ def gs_Lasso( xM, yV, alphas_log = (-1, 1, 9), n_folds=5, n_jobs = -1):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds = n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
 
 	gs.fit( xM, yV)
 
@@ -33,7 +33,7 @@ def gs_Lasso_norm( xM, yV, alphas_log = (-1, 1, 9)):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV)
 
@@ -138,7 +138,7 @@ def _gs_Ridge_r0( xM, yV, alphas_log = (1, -1, 9)):
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
 
 	gs.fit( xM, yV)
 
@@ -851,7 +851,7 @@ def _gs_SVR_r0( xM, yV, svr_params):
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV.A1)
 
@@ -864,7 +864,7 @@ def _gs_SVR_r1( xM, yV, svr_params, n_folds = 5):
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV.A1)
 
@@ -877,7 +877,7 @@ def gs_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1):
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
+	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
 
 	gs.fit( xM, yV.A1)
 
@@ -912,7 +912,7 @@ def _gs_SVC_r0( xM, yVc, params):
 	clf = svm.SVC()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yVc)
 
@@ -929,7 +929,7 @@ def gs_SVC( xM, yVc, params, n_folds = 5):
 	clf = svm.SVC()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yVc)
 
@@ -1049,7 +1049,7 @@ def gs_ElasticNet( xM, yV, en_params):
 
 	clf = linear_model.ElasticNet()
 	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, en_params, scoring = 'r2', cv = kf5, n_jobs = -1)
+	gs = model_selection.GridSearchCV( clf, en_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV)
 
@@ -1225,7 +1225,7 @@ def gs_Ridge( xM, yV, alphas_log = (1, -1, 9), n_folds = 5, n_jobs = -1, scoring
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = scoring, cv = kf_n, n_jobs = n_jobs)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = scoring, cv = kf_n, n_jobs = n_jobs)
 
 	gs.fit( xM, yV)
 
@@ -1243,7 +1243,7 @@ def gs_Ridge_BIKE( A_list, yV, XX = None, alphas_log = (1, -1, 9), n_folds = 5, 
 	ln = A_list[0].shape[0] # ls is the number of molecules.
 
 	kf_n = cross_validation.KFold( ln, n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = n_jobs)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = n_jobs)
 	
 	AX_idx = np.array([list(range( ln))]).T
 	gs.fit( AX_idx, yV)
@@ -1262,7 +1262,7 @@ def gs_BIKE_Ridge( A_list, yV, alphas_log = (1, -1, 9), X_concat = None, n_folds
 	ln = A_list[0].shape[0] # ls is the number of molecules.
 
 	kf_n = cross_validation.KFold( ln, n_folds=n_folds, shuffle=True)
-	gs = grid_search.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = n_jobs)
+	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = n_jobs)
 	
 	AX_idx = np.array([list(range( ln))]).T
 	gs.fit( AX_idx, yV)

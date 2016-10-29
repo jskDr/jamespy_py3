@@ -5,7 +5,7 @@ from sklearn import linear_model
 import pandas as pd
 import numpy as np
 
-from sklearn import grid_search, cross_validation
+from sklearn import model_selection, cross_validation
 
 def read_csv( *args, index_col=0, header=[0,1], **kwargs):
 	"""
@@ -43,7 +43,7 @@ class LinearRegression( linear_model.LinearRegression):
 		xyp_df = pd.concat( [x_df, yp_df], axis = 1)
 		xyp_df.to_csv( fname_out)
 
-class GridSearchCV( grid_search.GridSearchCV):
+class GridSearchCV( model_selection.GridSearchCV):
 	def __init__(self, estimator = None, param_grid = None, **kwargs):	
 		"""
 		estimator and param_grid can be values defined in csv. 
