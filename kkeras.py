@@ -2,17 +2,38 @@
 # Kkeras is the most recent version and kkeras_rx versions aer old versions.
  
 import numpy as np
+import matplotlib.pyplot as plt
 #np.random.seed(1337)  # for reproducibility
 
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation
-from keras.layers import Convolution1D, Flatten
+from keras.layers import Dense, Dropout, Activation, \
+				MaxPooling1D, Convolution1D, Flatten
 from keras.optimizers import RMSprop #,SGD, Adam, 
 from keras.utils import np_utils
 from keras import callbacks
 from keras.regularizers import l2
 
 import kutil
+
+def plot_acc( history):
+	# summarize history for accuracy
+	plt.plot(history.history['acc'])
+	plt.plot(history.history['val_acc'])
+	plt.title('model accuracy')
+	plt.ylabel('accuracy')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'test'], loc='upper left')
+	#plt.show()
+
+def plot_loss( history):
+	# summarize history for loss
+	plt.plot(history.history['loss'])
+	plt.plot(history.history['val_loss'])
+	plt.title('model loss')
+	plt.ylabel('loss')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'test'], loc='upper left')
+	#plt.show()
 
 class MLPC():
 	"""
@@ -89,6 +110,17 @@ class MLPC():
 
 		return score[1]
 
+	def evaluate( self, X_test, y_test):
+		model = self.model
+		nb_classes = self.nb_classes
+
+		Y_test = np_utils.to_categorical(y_test, nb_classes)
+
+		X_test = self.X_reshape( X_test)
+		score_l = model.evaluate(X_test, Y_test, verbose=0)
+
+		return score_l # loss, accuracy
+
 	def predict( self, X_test):
 		model = self.model
 		nb_classes = self.nb_classes
@@ -101,17 +133,16 @@ class MLPC():
 
 		return y_pred
 
-
 class CNNC( MLPC):
-	def __init__(self, n_cv_flt = 2, n_cv_ln = 3, cv_activation = 'relu', l = [49, 30, 10, 3]):
+	def __init__(self, n_cv_flt = 2, n_cv_ln = 3, cv_activation = 'relu', l = [49, 30, 10, 3], mp=1):
 		"""
 		Convolutional neural networks 
 		"""
 		self.n_cv_flt = n_cv_flt
 		self.n_cv_ln = n_cv_ln
 		self.cv_activation = cv_activation
+		self.mp = mp
 		super().__init__( l = l)
-
 
 	def modeling(self, l = [49, 30, 10, 3]):
 		"""
@@ -119,6 +150,7 @@ class CNNC( MLPC):
 		"""
 		n_cv_flt, n_cv_ln = self.n_cv_flt, self.n_cv_ln
 		cv_activation = self.cv_activation
+		mp = self.mp
 
 		model = Sequential()
 
@@ -129,6 +161,7 @@ class CNNC( MLPC):
 		# Convolution
 		print( "n_cv_flt, n_cv_ln, cv_activation", n_cv_flt, n_cv_ln, cv_activation)
 		model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, border_mode='same', input_shape=(l[0], 1)))
+		model.add(MaxPooling1D(mp))
 		model.add(Flatten())
 		model.add(Dense( l[1]))
 
@@ -155,7 +188,7 @@ class CNNC( MLPC):
 			X_val_3D = X_val_2D.reshape(X_val_2D.shape[0], -1, 1)
 			return X_train_3D, X_val_3D
 
-class CNNC_Name( CNNC):
+class _CNNC_Name_r0( CNNC):
 	def modeling(self, l = [49, 30, 10, 3]):
 		"""
 		generate model
@@ -189,6 +222,110 @@ class CNNC_Name( CNNC):
 		model.add(Activation('softmax'))
 
 		self.layer_dict = dict([(layer.name, layer) for layer in model.layers])
+
+		return model
+
+	def get_layer( self, name):
+		return self.layer_dict[ name]
+
+	def self_c_wb( self):
+		self.c_w, self.c_b = self.get_layer( self.c_name).get_weights()
+		return self
+
+	def get_c_wb( self):
+		self.self_c_wb()
+		return self.c_w, self.c_b
+
+class CNNC_Name( CNNC):
+	def modeling(self, l = [49, 30, 10, 3]):
+		"""
+		generate model
+		"""
+		self.c_name = 'conv'
+		mp = self.mp
+
+		n_cv_flt, n_cv_ln = self.n_cv_flt, self.n_cv_ln
+		cv_activation = self.cv_activation
+
+		model = Sequential()
+
+		# Direct: input_shape should be (l,0) not (l)
+		# if l, it assume a scalar for an input feature.
+		#model.add(Dense( l[1], input_shape=(l[0],))) 
+	
+		# Convolution
+		print( "n_cv_flt, n_cv_ln, cv_activation", n_cv_flt, n_cv_ln, cv_activation)
+		#model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
+		#	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
+		model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
+			border_mode='same', input_shape=(l[0],1), name = self.c_name))
+		model.add(MaxPooling1D(mp))
+		model.add(Flatten())
+		model.add(Dense( l[1]))
+
+		model.add(Activation('relu'))
+		model.add(Dropout(0.2))
+		model.add(Dense( l[2]))
+		model.add(Activation('relu'))
+		model.add(Dropout(0.2))
+		model.add(Dense( l[3]))
+		model.add(Activation('softmax'))
+
+		self.layer_dict = dict([(layer.name, layer) for layer in model.layers])
+
+		return model
+
+	def get_layer( self, name):
+		return self.layer_dict[ name]
+
+	def self_c_wb( self):
+		self.c_w, self.c_b = self.get_layer( self.c_name).get_weights()
+		return self
+
+	def get_c_wb( self):
+		self.self_c_wb()
+		return self.c_w, self.c_b
+
+class CNNC_Name_ConvOut( CNNC):
+	def modeling(self, l = [49, 30, 10, 3]):
+		"""
+		generate model
+		"""
+		self.c_name = 'conv'
+
+		n_cv_flt, n_cv_ln = self.n_cv_flt, self.n_cv_ln
+		cv_activation = self.cv_activation
+
+		model = Sequential()
+
+		# Direct: input_shape should be (l,0) not (l)
+		# if l, it assume a scalar for an input feature.
+		#model.add(Dense( l[1], input_shape=(l[0],))) 
+	
+		# Convolution
+		print( "n_cv_flt, n_cv_ln, cv_activation", n_cv_flt, n_cv_ln, cv_activation)
+		#model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
+		#	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
+		model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
+			border_mode='same', input_shape=(l[0],1), name = self.c_name))
+		#model.add(Activation('relu'))
+		model.add(Flatten())
+		model.add(Dense( l[1]))
+
+		model.add(Activation('relu'))
+		model.add(Dropout(0.2))
+		model.add(Dense( l[2]))
+		model.add(Activation('relu'))
+		model.add(Dropout(0.2))
+		model.add(Dense( l[3]))
+		model.add(Activation('softmax'))
+
+		self.layer_dict = dict([(layer.name, layer) for layer in model.layers])
+
+		convout_model = Sequential()
+		convout_model.add( model.layers[0])
+
+		self.convout_model = convout_model
 
 		return model
 
@@ -237,6 +374,7 @@ class CNNC_Name_Border( CNNC):
 		#	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
 		model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation, 
 			border_mode=border_mode, input_shape=(l[0],1), name = self.c_name))
+		#model.add(Activation('relu'))
 		model.add(Flatten())
 		model.add(Dense( l[1]))
 

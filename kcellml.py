@@ -4,9 +4,10 @@
 import numpy as np
 import pandas as pd
 
-from sklearn import cross_validation, svm, metrics, cluster, tree, ensemble
+from sklearn import model_selection, svm, metrics, cluster, tree, ensemble
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
+import re
 
 import kkeras
 
@@ -41,7 +42,7 @@ def clst( X_train, y_train, X_test, y_test, nb_classes):
 	dt_score = model.score( X_test, y_test)
 	print( "DT-C:", dt_score)
 
-	model = svm.SVC( kernel = 'linear')
+	model = svm.SVC(C=100) #kernel = 'linear')
 	model.fit( X_train, y_train)
 	sv_score = model.score( X_test, y_test)
 	print( "SVC:", sv_score)
@@ -57,7 +58,7 @@ def clst( X_train, y_train, X_test, y_test, nb_classes):
 	cnn_score = model.score( X_test, y_test)
 	print( "DCNN:", cnn_score)
 
-	model = ensemble.RandomForestClassifier( n_estimators=10)
+	model = ensemble.RandomForestClassifier(n_estimators=100)
 	model.fit( X_train, y_train)
 	rf_score = model.score( X_test, y_test)
 	print( "RF:", rf_score)
@@ -74,7 +75,7 @@ def GET_clsf2_by_clst( nb_classes):
 		cl_model.fit(Xpart_ct)
 		yint = cl_model.predict( Xpart_ct)
 
-		X_train, X_test, y_train, y_test = cross_validation.train_test_split( Xpart_cf, yint, test_size = 0.2)
+		X_train, X_test, y_train, y_test = model_selection.train_test_split( Xpart_cf, yint, test_size = 0.2)
 
 		return clst(X_train, y_train, X_test, y_test, nb_classes)
 
@@ -85,7 +86,7 @@ def GET_clsf2_by_yint( nb_classes):
 		"""
 		classification is performed by yint
 		"""
-		X_train, X_test, y_train, y_test = cross_validation.train_test_split( X1part, yint, test_size = 0.2)
+		X_train, X_test, y_train, y_test = model_selection.train_test_split( X1part, yint, test_size = 0.2)
 
 		return clst(X_train, y_train, X_test, y_test, nb_classes)
 
@@ -276,7 +277,28 @@ def cell_get_X( cell_df, Protein = 'VASP', Mode = 'Velocity', Cluster_l = [0]):
 	
 	return X
 
-def cell_get_cluster( cell_df, Protein = 'VASP', Mode = 'Velocity'):
+def cell_get_cluster( cell_df, Protein = 'VASP', Mode = 'Velocity', cname = "Cluster"):
+	"""
+	Input
+	-----
+	cell_df, pd.DataFrame
+	key() = ['Protein', 'Mode', 'Cluster', 'sample', 'time', 'value']
+	e.g., cell_df = pd.read_csv( '../data/raw-4x9-norm.csv')
+
+	"""
+	# To pick up cluster indices, consider only one time in a sequence
+	# since all time samples in a sequence are associated to the same cluster.
+	time_set = set( cell_df['time'])
+	a_time = list(time_set)[0]
+
+	cell_df_vasp_velocity_c0 = cell_df[ 
+		(cell_df.Protein == Protein) & (cell_df.Mode == Mode) & (cell_df.time == a_time)]
+
+	clusters_a = cell_df_vasp_velocity_c0[ cname].values
+	
+	return clusters_a
+
+def _cell_get_cluster_r0( cell_df, Protein = 'VASP', Mode = 'Velocity'):
 	"""
 	Input
 	-----
@@ -449,3 +471,302 @@ def get_VIC( fname = '../data/raw-4x9-195to251.csv', time_range = (195, 251),
 		print( V[ pname].shape, I[pname].shape, C[pname].shape)
 		
 	return V, I, C
+
+def get_VICC( fname = '../data/raw-4x9-195to251.csv', clusters_l=[0,1,2,4],
+				pname_l=['arp23', 'cofilin1', 'VASP', 'Actin']):
+	# cluster_l is fixed. Later, this information should be obtained automatically using set() and list()
+	cell_df = pd.read_csv( fname)
+
+	#l_t = time_range[1] - time_range[0]
+
+	V, I, C, Cell = {}, {}, {}, {}
+	for pname in pname_l:
+		print( "Reading:", pname)
+		V[ pname] = cell_get_X(cell_df, pname, 'Velocity', clusters_l)
+		I[ pname] = cell_get_X(cell_df, pname, 'Intensity', clusters_l)
+		C[ pname] = cell_get_cluster(cell_df, pname)
+		Cell[ pname] = cell_get_cluster(cell_df, pname, cname = "Cell")
+		print( V[ pname].shape, I[pname].shape, C[pname].shape)
+		
+	return V, I, C, Cell
+
+def get_VICCSS( fname = '../data/raw-4x9-195to251.csv', clusters_l=[0,1,2,4],
+				pname_l=['arp23', 'cofilin1', 'VASP', 'Actin']):
+	"""
+	V, I, C, Cell, SV, SI = kcellml.get_VICCSS(...)
+	"""
+	# cluster_l is fixed. Later, this information should be obtained automatically using set() and list()
+	cell_df = pd.read_csv( fname)
+
+	#l_t = time_range[1] - time_range[0]
+
+	V, I, C, Cell, SV, SI = {}, {}, {}, {}, {}, {}
+	for pname in pname_l:
+		print( "Reading:", pname)
+		V[ pname] = cell_get_X(cell_df, pname, 'Velocity', clusters_l)
+		I[ pname] = cell_get_X(cell_df, pname, 'Intensity', clusters_l)
+		SV[ pname] = cell_get_X(cell_df, pname, 'Velocity(Sax)', clusters_l)
+		SI[ pname] = cell_get_X(cell_df, pname, 'Intensity(Sax)', clusters_l)	
+		C[ pname] = cell_get_cluster(cell_df, pname)
+		Cell[ pname] = cell_get_cluster(cell_df, pname, cname = "Cell")
+		print( V[ pname].shape, I[pname].shape, C[pname].shape)
+		
+	return V, I, C, Cell, SV, SI
+
+def get_VICCSSCN( fname = '../data/raw-4x9-195to251.csv', clusters_l=[0,1,2,3],
+				pname_l=['arp23', 'cofilin1', 'VASP', 'Actin']):
+	"""
+	V, I, C, Cell, SV, SI, I_VASP_CN, I_VASP_CN_Sax = kcellml.get_VICCSSCN(...)
+	"""
+	# cluster_l is fixed. Later, this information should be obtained automatically using set() and list()
+	cell_df = pd.read_csv( fname)
+
+	#l_t = time_range[1] - time_range[0]
+
+	V, I, C, Cell, SV, SI = {}, {}, {}, {}, {}, {}
+	for pname in pname_l:
+		print( "Reading:", pname)
+		V[ pname] = cell_get_X(cell_df, pname, 'Velocity', clusters_l)
+		I[ pname] = cell_get_X(cell_df, pname, 'Intensity', clusters_l)
+		SV[ pname] = cell_get_X(cell_df, pname, 'Velocity(Sax)', clusters_l)
+		SI[ pname] = cell_get_X(cell_df, pname, 'Intensity(Sax)', clusters_l)	
+		C[ pname] = cell_get_cluster(cell_df, pname)
+		Cell[ pname] = cell_get_cluster(cell_df, pname, cname = "Cell")
+		print( V[ pname].shape, I[pname].shape, C[pname].shape)
+
+	assert "VASP" in pname_l
+	I_VASP_CN = cell_get_X(cell_df, "VASP", "Intensity-CellNorm", clusters_l)
+	I_VASP_CN_Sax = cell_get_X(cell_df, "VASP", "Intensity-CellNorm(Sax)", clusters_l)
+	C_VASP_CN = cell_df[(cell_df["Protein"]=="VASP")&(cell_df["Mode"]=="Intensity-CellNorm")&
+				(cell_df["time"]==0)]["Cluster"].values
+
+	print("Perform sorting to align with Icn/Icnsax/y_cn.")
+	for pname in pname_l:	
+		arg_ysort = np.argsort( C[ pname])
+		V[pname] = V[pname][arg_ysort,:]
+		I[pname] = I[pname][arg_ysort,:]
+		SV[pname] = SV[pname][arg_ysort,:]
+		SI[pname] = SI[pname][arg_ysort,:]
+		C[pname] = C[pname][arg_ysort]
+		Cell[pname] = Cell[pname][arg_ysort]
+	
+	return V, I, C, Cell, SV, SI, I_VASP_CN, I_VASP_CN_Sax, C_VASP_CN	
+
+def cell_gen_df_sample_cell( i_l, Mode, new_sample_idx, c_l, p_l, cell_l):
+	"""
+	Mode is one of 'Intensity', 'Velocity'
+	"""
+	sax_raw_df = pd.DataFrame()
+	# intensity
+	sax_raw_df['Protein'] = np.repeat(p_l, i_l.shape[1])
+	sax_raw_df['Cell'] = np.repeat( cell_l, i_l.shape[1])
+	sax_raw_df['Mode'] = Mode
+	sax_raw_df['Cluster'] = np.repeat(c_l, i_l.shape[1])
+	sax_raw_df['sample'] = np.repeat( new_sample_idx, i_l.shape[1])
+	sax_raw_df['time'] = list(range(i_l.shape[1])) * i_l.shape[0]
+	sax_raw_df['value'] = i_l.reshape(-1)
+
+	return sax_raw_df
+
+def RUN_cell_gen_df_sample_cell():
+	# Protein list
+	p_l = pd.read_csv( "../data/For_feature_classification_2/Matlab_f2/dminpool_more_56.dminpoolc_Protein.csv").values
+	# Intensity list
+	I_l = pd.read_csv("../data/For_feature_classification_2/Matlab_f2/dminpool_more_56.dminpool.csv", header = None).values
+	# Velocity list
+	V_l = pd.read_csv("../data/For_feature_classification_2/Matlab_f2/dminpool_more_56.dminpoolv.csv", header = None).values
+	# Cluster assignment
+	c_l = pd.read_csv("../data/For_feature_classification_2/Matlab_f2/cluster_assignment_ordered_T_0to3.csv").values
+	cell_l = pd.read_csv( "../data/For_feature_classification_2/Matlab_f2/dminpool_more_56.dminpoolc_cell_index.csv").values
+	# New Sample Index
+	new_sample_idx = list(range(407)) + list(range(730-407)) + list(range(1753-730))
+
+	# Sax Velocity
+	sax_v_l = pd.read_csv("../data/For_feature_classification_2/Matlab_f2/dminpool_more_56_symbolic_data_symbolic_feat_data_ratio_4_alpha_size_4.csv", header = None).values
+
+	new_sample_idx = list(range(407)) + list(range(730-407)) + list(range(1753-730))
+
+	sax_raw_df_i = cell_gen_df_sample_cell(I_l, 'Intensity', new_sample_idx, c_l, p_l, cell_l)
+	sax_raw_df_v = cell_gen_df_sample_cell(V_l, 'Velocity', new_sample_idx, c_l, p_l, cell_l)
+	sax_raw_df_s = cell_gen_df_sample_cell(sax_v_l, 'Velocity(Sax)', new_sample_idx, c_l, p_l, cell_l)
+
+	sax_raw_df = pd.concat( [sax_raw_df_v, sax_raw_df_i, sax_raw_df_s], ignore_index=True)
+	sax_raw_df.shape
+
+	print(sax_raw_df.shape[0] / 1753)
+
+	sax_raw_df.to_csv("../data/For_feature_classification_2/Matlab_f2/sax_raw_df_cell.csv", index=False)
+
+def cell_get_cell( ss_c, fold_fname):
+
+	def search_cell_idx( ss_c):
+		cidx_l = []
+		for s in ss_c[1:]:
+			rm = re.search('[0-9]+', s)
+			cidx_l.append( int(rm.group()))
+		return cidx_l
+
+	cidx_l = search_cell_idx( ss_c)
+
+	len(cidx_l)
+
+	set( cidx_l)
+
+	df = pd.DataFrame( cidx_l, columns=['Cell index'])
+
+	print( df.shape)
+	cell_fname = fold_fname[:-4] + "_cell_index.csv"
+	df.to_csv( cell_fname, index=False)
+	print( 'Cell information is saved to:')
+	print( cell_fname)
+
+	return df
+
+def cell_get_protein( ss_c, protcell_fname):
+	protein_l = [ss_c[0]]
+	for protein in ss_c[1:-1]:
+		if protein[1].isdigit():
+			if protein[2:] == "Actin_dual":
+				protein_l.append( "Actin")
+			else:
+				protein_l.append( protein[2:])
+		else:
+			if protein[1:] == "Actin_dual":
+				protein_l.append( "Actin")
+			else:
+				protein_l.append( protein[1:])
+
+	# Arp23 --> arp23 since I used that before
+	p_l = []
+	for p in protein_l:
+		if p == "Arp23":
+			p_l.append( "arp23")
+		else:
+			p_l.append( p)
+
+	p_set = set(p_l)
+	p_set_l = list( p_set)
+	print(p_set)
+
+	protein_df = pd.DataFrame()
+	protein_df["Protein"] = p_l
+	prot_fname = protcell_fname[:-4] +'_Protein.csv'
+	protein_df.to_csv( prot_fname, index = False)
+	print( 'Protein information is saved to:')
+	print( prot_fname)
+	
+	return protein_df
+
+def cell_get_protein_cell_from_matcsv( 
+		fold = "../data/For_feature_classification_2/Matlab_f2/", 
+		fname = "protcell_fname = dminpool_more_56.dminpoolc.csv"):
+	"""
+	Return
+	======
+	prot_df, pd.DataFrame
+
+	cell_df, pd.DataFrame
+	"""
+
+	# Read specific information such as protein and cell
+	with open( fold + fname) as f:
+		s = f.readline()
+
+	# Remove comma
+	s_l = s.split(",")
+	ss = "".join(s_l)
+
+	# split by _C since _C is included all strings
+	ss_c = ss.split("_C")
+	print( len(ss_c))
+
+	prot_df = cell_get_protein( ss_c, fold + fname)
+	cell_df = cell_get_cell( ss_c, fold + fname)
+
+	return prot_df, cell_df
+
+def cell_get_protein_from_matcsv( 
+		fold = "../data/For_feature_classification_2/Matlab_f2/", 
+		fname = "protcell_fname = dminpool_more_56.dminpoolc.csv"):
+
+	protcell_fname = fold + fname
+	
+	# Read specific information such as protein and cell
+	with open( protcell_fname) as f:
+		s = f.readline()
+
+	# Remove comma
+	s_l = s.split(",")
+	ss = "".join(s_l)
+
+	# split by _C since _C is included all strings
+	ss_c = ss.split("_C")
+	print( len(ss_c))
+
+	protein_l = [ss_c[0]]
+	for protein in ss_c[1:-1]:
+		if protein[1].isdigit():
+			if protein[2:] == "Actin_dual":
+				protein_l.append( "Actin")
+			else:
+				protein_l.append( protein[2:])
+		else:
+			if protein[1:] == "Actin_dual":
+				protein_l.append( "Actin")
+			else:
+				protein_l.append( protein[1:])
+
+	# Arp23 --> arp23 since I used that before
+	p_l = []
+	for p in protein_l:
+		if p == "Arp23":
+			p_l.append( "arp23")
+		else:
+			p_l.append( p)
+
+	p_set = set(p_l)
+	p_set_l = list( p_set)
+	print(p_set)
+
+	protein_df = pd.DataFrame()
+	protein_df["Protein"] = p_l
+	protein_df.to_csv( protcell_fname[-4] +'_Protein.csv', index = False)
+	print( 'Protein information is saved to:')
+	print( protcell_fname[-4] +'_Protein.csv')
+	
+	return protein_df
+
+def get_new_sample_idx( 
+		fold = '../data/For_feature_classification_2/Matlab_f2_3clusters/',
+		fname = 'dminpool_more_56.dminpoolc_Protein.csv'): 
+	
+	protein_df = pd.read_csv( fold + fname)
+	prot_a = protein_df["Protein"].values
+	p_list, p_ln_l = [], []
+	p_cur = ''
+	p_cnt = 0
+	for p in prot_a:
+		if p != p_cur:
+			if p_cur != '':
+				print(p)
+				p_ln_l.append(p_cnt)
+				p_cnt = 0
+			p_list.append( p)
+			p_cur = p
+		p_cnt += 1
+
+	p_ln_l.append( prot_a.shape[0] - np.sum(p_ln_l))
+	print(p_list, p_ln_l)
+
+	for p in p_list:
+		pos_2 = np.where( prot_a == p)
+		pos = pos_2[0]
+		l = pos[-1] - pos[0] + 1
+		print( p, pos[0], pos[-1], pos[-1] - pos[0] + 1, 
+			  np.sum( pos - pos[0]), np.sum( pos - pos[0]) == l*(l-1)/2)
+	
+	new_sample_idx = []
+	for pl in p_ln_l:
+		new_sample_idx.extend( list( range( pl)))
+		
+	return new_sample_idx

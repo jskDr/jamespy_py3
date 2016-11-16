@@ -2,7 +2,7 @@
 grid search codes for machine learning
 """
 
-from sklearn import cross_validation, cross_validation, model_selection, linear_model, svm, metrics
+from sklearn import model_selection, linear_model, svm, metrics
 import numpy as np
 import pandas as pd
 from operator import itemgetter
@@ -18,7 +18,9 @@ def gs_Lasso( xM, yV, alphas_log = (-1, 1, 9), n_folds=5, n_jobs = -1):
 	clf = linear_model.Lasso()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds = n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds = n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
+
 	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
 
 	gs.fit( xM, yV)
@@ -32,7 +34,8 @@ def gs_Lasso_norm( xM, yV, alphas_log = (-1, 1, 9)):
 	clf = linear_model.Lasso( normalize = True)
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV)
@@ -41,7 +44,8 @@ def gs_Lasso_norm( xM, yV, alphas_log = (-1, 1, 9)):
 
 def gs_Lasso_kf( xM, yV, alphas_log_l):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score_l = []
 	for ix, (tr, te) in enumerate( kf5_ext):
@@ -84,7 +88,8 @@ def gs_Lasso_kf( xM, yV, alphas_log_l):
 
 def gs_Lasso_kf_ext( xM, yV, alphas_log_l):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score_l = []
 	for ix, (tr, te) in enumerate( kf5_ext):
@@ -137,7 +142,8 @@ def _gs_Ridge_r0( xM, yV, alphas_log = (1, -1, 9)):
 	clf = linear_model.Ridge()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf5, n_jobs = 1)
 
 	gs.fit( xM, yV)
@@ -162,8 +168,9 @@ def _cv_LinearRegression_r0( xM, yV):
 	print(xM.shape, yV.shape)
 
 	clf = linear_model.Ridge()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	cv_scores = cross_validation.cross_val_score( clf, xM, yV, scoring = 'r2', cv = kf5, n_jobs = -1)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
+	cv_scores = model_selection.cross_val_score( clf, xM, yV, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	return cv_scores
 
@@ -172,8 +179,9 @@ def _cv_LinearRegression_r1( xM, yV):
 	print(xM.shape, yV.shape)
 
 	clf = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	cv_scores = cross_validation.cross_val_score( clf, xM, yV, scoring = 'r2', cv = kf5, n_jobs = -1)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
+	cv_scores = model_selection.cross_val_score( clf, xM, yV, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	print('R^2 mean, std -->', np.mean( cv_scores), np.std( cv_scores))
 
@@ -184,8 +192,9 @@ def _cv_LinearRegression_r2( xM, yV, scoring = 'r2'):
 	print(xM.shape, yV.shape)
 
 	clf = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
-	cv_scores = cross_validation.cross_val_score( clf, xM, yV, scoring = scoring, cv = kf5, n_jobs = -1)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
+	cv_scores = model_selection.cross_val_score( clf, xM, yV, scoring = scoring, cv = kf5, n_jobs = -1)
 
 	print('{}: mean, std -->'.format( scoring), np.mean( cv_scores), np.std( cv_scores))
 
@@ -204,7 +213,8 @@ def cv_LinearRegression( xM, yV, n_folds = 5, scoring = 'median_absolute_error',
 		print(xM.shape, yV.shape)
 
 	clf = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	
 	cv_score_l = list()
 	for train, test in kf5:
@@ -236,7 +246,8 @@ def cv_LinearRegression_ci( xM, yV, n_folds = 5, scoring = 'median_absolute_erro
 		print(xM.shape, yV.shape)
 
 	clf = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	
 	cv_score_l = list()
 	ci_l = list()
@@ -272,7 +283,8 @@ def cv_LinearRegression_ci_pred( xM, yV, n_folds = 5, scoring = 'median_absolute
 		print(xM.shape, yV.shape)
 
 	clf = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	
 	cv_score_l = list()
 	ci_l = list()
@@ -314,7 +326,8 @@ def cv_LinearRegression_ci_pred_full_Ridge( xM, yV, alpha, n_folds = 5, shuffle=
 
 	# print( 'alpha of Ridge is', alpha)
 	clf = linear_model.Ridge( alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=shuffle)
+	kf5 = kf5_c.split( xM)
 	
 	cv_score_l = list()
 	ci_l = list()
@@ -350,7 +363,8 @@ def cv_LinearRegression_ci_pred_full( xM, yV, n_folds = 5, shuffle=True, disp = 
 		print(xM.shape, yV.shape)
 
 	clf = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=shuffle)
+	kf5 = kf5_c.split( xM)
 	
 	cv_score_l = list()
 	ci_l = list()
@@ -530,7 +544,8 @@ def mdae_no_regression( xM, yV, disp = False, ldisp = False):
 
 def cv_LinearRegression_A( xM, yV, s_l):
 	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	r2_l = list()
 	for train, test in kf5:
 		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
@@ -560,7 +575,8 @@ def cv_LinearRegression_A( xM, yV, s_l):
 
 def cv_LinearRegression_Asupervising( xM, yV, s_l):
 	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	r2_l = list()
 	for train, test in kf5:
 		xM_shuffle = np.concatenate( (xM[ train, :], xM[ test, :]), axis = 0)
@@ -591,7 +607,8 @@ def cv_LinearRegression_Asupervising( xM, yV, s_l):
 def cv_LinearRegression_Asupervising_molw( xM, yV, s_l):
 	
 	lr = linear_model.LinearRegression()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	r2_l = list()
 	
 	for train, test in kf5:
@@ -624,7 +641,8 @@ def cv_LinearRegression_Asupervising_molw( xM, yV, s_l):
 def cv_Ridge_Asupervising_molw( xM, yV, s_l, alpha):
 	
 	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	r2_l = list()
 	
 	for train, test in kf5:
@@ -657,7 +675,8 @@ def cv_Ridge_Asupervising_molw( xM, yV, s_l, alpha):
 def cv_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha):
 	
 	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( len(s_l), n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( s_l)
 	r2_l = list()
 	
 	for train, test in kf5:
@@ -698,7 +717,8 @@ def cv_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha):
 def cv_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha):
 	
 	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( len(s_l), n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( s_l)
 	r2_l = list()
 	
 	for train, test in kf5:
@@ -766,7 +786,8 @@ def gs_Ridge_Asupervising( xM, yV, s_l, alpha_l):
 def cv_Ridge_Asupervising( xM, yV, s_l, alpha):
 	
 	lr = linear_model.Ridge( alpha = alpha)
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	r2_l = list()
 	
 	for train, test in kf5:
@@ -798,7 +819,8 @@ def cv_Ridge_Asupervising( xM, yV, s_l, alpha):
 
 def gs_RidgeByLasso_kf_ext( xM, yV, alphas_log_l):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score_l = []
 	for ix, (tr, te) in enumerate( kf5_ext):
@@ -850,7 +872,8 @@ def _gs_SVR_r0( xM, yV, svr_params):
 
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV.A1)
@@ -863,7 +886,8 @@ def _gs_SVR_r1( xM, yV, svr_params, n_folds = 5):
 
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV.A1)
@@ -876,7 +900,8 @@ def gs_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1):
 
 	clf = svm.SVR()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5, n_jobs = n_jobs)
 
 	gs.fit( xM, yV.A1)
@@ -892,8 +917,10 @@ def cv_SVR( xM, yV, svr_params, n_folds = 5, n_jobs = -1, grid_std = None, graph
 	print(xM.shape, yV.shape)
 
 	clf = svm.SVR( **svr_params)
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
-	yV_pred = cross_validation.cross_val_predict( clf, xM, yV.A1, cv = kf_n, n_jobs = n_jobs)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( xM)
+
+	yV_pred = model_selection.cross_val_predict( clf, xM, yV.A1, cv = kf_n, n_jobs = n_jobs)
 
 	if graph:
 		print('The prediction output using cross-validation is given by:')
@@ -911,7 +938,8 @@ def _gs_SVC_r0( xM, yVc, params):
 
 	clf = svm.SVC()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yVc)
@@ -928,7 +956,8 @@ def gs_SVC( xM, yVc, params, n_folds = 5):
 
 	clf = svm.SVC()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, params, cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yVc)
@@ -938,7 +967,8 @@ def gs_SVC( xM, yVc, params, n_folds = 5):
 
 def gs_SVRByLasso_kf_ext( xM, yV, alphas_log, svr_params):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score_l = []
 	for ix, (tr, te) in enumerate( kf5_ext):
@@ -989,7 +1019,8 @@ def gs_SVRByLasso_kf_ext( xM, yV, alphas_log, svr_params):
 
 def gs_SVRByLasso( xM, yV, alphas_log, svr_params):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score1_l = []
 	score_l = []
@@ -1048,7 +1079,8 @@ def gs_ElasticNet( xM, yV, en_params):
 	print(xM.shape, yV.shape)
 
 	clf = linear_model.ElasticNet()
-	kf5 = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5 = kf5_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, en_params, scoring = 'r2', cv = kf5, n_jobs = -1)
 
 	gs.fit( xM, yV)
@@ -1057,7 +1089,8 @@ def gs_ElasticNet( xM, yV, en_params):
 
 def gs_SVRByElasticNet( xM, yV, en_params, svr_params):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score1_l = []
 	score_l = []
@@ -1113,7 +1146,8 @@ def gs_SVRByElasticNet( xM, yV, en_params, svr_params):
 
 def gs_GPByLasso( xM, yV, alphas_log):
 
-	kf5_ext = cross_validation.KFold( xM.shape[0], n_folds=5, shuffle=True)
+	kf5_ext_c = model_selection.KFold(n_folds=5, shuffle=True)
+	kf5_ext = kf5_ext_c.split( xM)
 
 	score1_l = []
 	score_l = []
@@ -1224,7 +1258,8 @@ def gs_Ridge( xM, yV, alphas_log = (1, -1, 9), n_folds = 5, n_jobs = -1, scoring
 	clf = linear_model.Ridge()
 	#parmas = {'alpha': np.logspace(1, -1, 9)}
 	parmas = {'alpha': np.logspace( *alphas_log)}
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( xM)
 	gs = model_selection.GridSearchCV( clf, parmas, scoring = scoring, cv = kf_n, n_jobs = n_jobs)
 
 	gs.fit( xM, yV)
@@ -1242,7 +1277,8 @@ def gs_Ridge_BIKE( A_list, yV, XX = None, alphas_log = (1, -1, 9), n_folds = 5, 
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	ln = A_list[0].shape[0] # ls is the number of molecules.
 
-	kf_n = cross_validation.KFold( ln, n_folds=n_folds, shuffle=True)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( A_list)
 	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = n_jobs)
 	
 	AX_idx = np.array([list(range( ln))]).T
@@ -1261,7 +1297,8 @@ def gs_BIKE_Ridge( A_list, yV, alphas_log = (1, -1, 9), X_concat = None, n_folds
 	parmas = {'alpha': np.logspace( *alphas_log)}
 	ln = A_list[0].shape[0] # ls is the number of molecules.
 
-	kf_n = cross_validation.KFold( ln, n_folds=n_folds, shuffle=True)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( A_list)
 	gs = model_selection.GridSearchCV( clf, parmas, scoring = 'r2', cv = kf_n, n_jobs = n_jobs)
 	
 	AX_idx = np.array([list(range( ln))]).T
@@ -1278,8 +1315,9 @@ def _cv_r0( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, gr
 	print(xM.shape, yV.shape)
 
 	clf = getattr( linear_model, method)( alpha = alpha)
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=True)
-	yV_pred = cross_validation.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( xM)
+	yV_pred = model_selection.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
 
 	if graph:
 		print('The prediction output using cross-validation is given by:')
@@ -1298,8 +1336,9 @@ def cv( method, xM, yV, alpha, n_folds = 5, n_jobs = -1, grid_std = None, graph 
 	print(xM.shape, yV.shape)
 
 	clf = getattr( linear_model, method)( alpha = alpha)
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds, shuffle=shuffle)
-	yV_pred = cross_validation.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( xM)
+	yV_pred = model_selection.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
 
 	if graph:
 		print('The prediction output using cross-validation is given by:')
@@ -1317,8 +1356,10 @@ def _cv_LOO_r0( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = Tru
 	print(xM.shape, yV.shape)
 
 	clf = getattr( linear_model, method)( alpha = alpha)
-	kf_n = cross_validation.KFold( xM.shape[0], n_folds=n_folds)
-	yV_pred = cross_validation.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
+	# print("Note - shuffling is not applied because of LOO.")
+	kf_n_c = model_selection.KFold(n_folds=n_folds)
+	kf_n = kf_n_c.split( xM)
+	yV_pred = model_selection.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
 
 	if graph:
 		print('The prediction output using cross-validation is given by:')
@@ -1334,10 +1375,11 @@ def cv_Ridge_BIKE( A_list, yV, XX = None, alpha = 0.5, n_folds = 5, n_jobs = -1,
 
 	clf = binary_model.BIKE_Ridge( A_list, XX, alpha = alpha)
 	ln = A_list[0].shape[0] # ls is the number of molecules.
-	kf_n = cross_validation.KFold( ln, n_folds=n_folds, shuffle=True)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( A_list)
 
 	AX_idx = np.array([list(range( ln))]).T
-	yV_pred = cross_validation.cross_val_predict( clf, AX_idx, yV, cv = kf_n, n_jobs = n_jobs)
+	yV_pred = model_selection.cross_val_predict( clf, AX_idx, yV, cv = kf_n, n_jobs = n_jobs)
 
 	print('The prediction output using cross-validation is given by:')
 	jutil.cv_show( yV, yV_pred, grid_std = grid_std)
@@ -1348,10 +1390,11 @@ def cv_BIKE_Ridge( A_list, yV, alpha = 0.5, XX = None, n_folds = 5, n_jobs = -1,
 
 	clf = binary_model.BIKE_Ridge( A_list, XX, alpha = alpha)
 	ln = A_list[0].shape[0] # ls is the number of molecules.
-	kf_n = cross_validation.KFold( ln, n_folds=n_folds, shuffle=True)
+	kf_n_c = model_selection.KFold(n_folds=n_folds, shuffle=True)
+	kf_n = kf_n_c.split( A_list)
 
 	AX_idx = np.array([list(range( ln))]).T
-	yV_pred = cross_validation.cross_val_predict( clf, AX_idx, yV, cv = kf_n, n_jobs = n_jobs)
+	yV_pred = model_selection.cross_val_predict( clf, AX_idx, yV, cv = kf_n, n_jobs = n_jobs)
 
 	print('The prediction output using cross-validation is given by:')
 	jutil.cv_show( yV, yV_pred, grid_std = grid_std)
