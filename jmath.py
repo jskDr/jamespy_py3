@@ -113,6 +113,13 @@ def autocorrelate(x, method = 'numpy'):
 		return autocorr_kmlee(x)
 
 def autocorrelate_m(X_org, method):
+	"""
+	autocorrelate_m(X_org, method)
+	Inputs
+	======
+	method, string
+	'numpy', 'zeropadding', 'kmlee' 
+	"""
 	X_l = []
 	for i in range(X_org.shape[0]): 
 		x_org = X_org[i,:]

@@ -17,7 +17,7 @@ def GET_clsf2_by_clst( nb_classes):
 		cl_model.fit(Xpart_ct)
 		yint = cl_model.predict( Xpart_ct)
 
-		X_train, X_test, y_train, y_test = 
+		X_train, X_test, y_train, y_test = \
 			model_selection.train_test_split( Xpart_cf, yint, test_size = 0.2)
 
 		model = tree.DecisionTreeClassifier()
@@ -44,7 +44,7 @@ def GET_clsf2_by_yint( nb_classes):
 		"""
 		classification is performed by yint
 		"""
-		X_train, X_test, y_train, y_test = 
+		X_train, X_test, y_train, y_test = \
 			model_selection.train_test_split( X1part, yint, test_size = 0.2)
 
 		model = tree.DecisionTreeClassifier()

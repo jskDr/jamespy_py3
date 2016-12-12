@@ -1,5 +1,10 @@
 """
-File related library will be saved. 
+kfile.py
+File related library will be saved.
+
+Note
+====
+k---.py files do not import rdkit since they are common files. 
 """
 
 import pickle
