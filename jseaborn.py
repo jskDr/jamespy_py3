@@ -216,3 +216,14 @@ def tsplot_clusters( X, y):
     """
     for yit in list(set(y)):
         sns.tsplot( X[y==yit,:], color=plt.cm.rainbow(yit/max(y)))
+
+
+def show_clusters( y_kmeans, Vorg, title=None):
+    set_y = set(y_kmeans)
+    for i in set_y:
+        c = plt.cm.rainbow_r(i/max(set_y))
+        sns.tsplot( Vorg[y_kmeans==i,:], color=c)
+    plt.xlabel('Time')
+    plt.ylabel('Maganitude')
+    if title:
+        plt.title(title)
