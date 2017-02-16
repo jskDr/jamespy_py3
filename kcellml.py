@@ -1,6 +1,5 @@
 # kcell.py
 # python3
-
 import numpy as np
 import pandas as pd
 
@@ -17,6 +16,7 @@ param_d = {"n_cv_flt": 2, "n_cv_ln": 3, "cv_activation": "relu",
            'SVC:C': 100, 'SVC:gamma': 'auto',
            'RF:n_estimators': 100, 'RF:oob_score': False,
            'DNN:H1': 30, 'DNN:H2': 10}
+
 
 def setparam(p_d):
     """
@@ -74,6 +74,7 @@ def _clst_r0(X_train, y_train, X_test, y_test, nb_classes, disp=True):
 
     return dt_score, sv_score, mlp_score, cnn_score, rf_score
 
+
 def clst(X_train, y_train, X_test, y_test, nb_classes, disp=True,
          confusion_matric_return=False, matthews_corrcoef_return=False):
     """
@@ -98,7 +99,8 @@ def clst(X_train, y_train, X_test, y_test, nb_classes, disp=True,
     dt_score = model.score(X_test, y_test)
     y_pred = model.predict(X_test)
     dt_cf = metrics.confusion_matrix(y_test, y_pred)
-    dt_mc = metrics.matthews_corrcoef(y_test, y_pred)
+    if matthews_corrcoef_return:
+        dt_mc = metrics.matthews_corrcoef(y_test, y_pred)
 
     model = svm.SVC(C=param_d['SVC:C'], gamma=param_d['SVC:gamma'])
     # print(model)
@@ -106,7 +108,8 @@ def clst(X_train, y_train, X_test, y_test, nb_classes, disp=True,
     sv_score = model.score(X_test, y_test)
     y_pred = model.predict(X_test)
     sv_cf = metrics.confusion_matrix(y_test, y_pred)
-    sv_mc = metrics.matthews_corrcoef(y_test, y_pred)
+    if matthews_corrcoef_return:
+        sv_mc = metrics.matthews_corrcoef(y_test, y_pred)
 
     model = kkeras.MLPC([X_train.shape[1],
                          param_d["DNN:H1"], param_d["DNN:H2"], nb_classes])
@@ -114,7 +117,8 @@ def clst(X_train, y_train, X_test, y_test, nb_classes, disp=True,
     mlp_score = model.score(X_test, y_test)
     y_pred = model.predict(X_test)
     mlp_cf = metrics.confusion_matrix(y_test, y_pred)
-    mlp_mc = metrics.matthews_corrcoef(y_test, y_pred)
+    if matthews_corrcoef_return:
+        mlp_mc = metrics.matthews_corrcoef(y_test, y_pred)
 
     model = kkeras.CNNC(param_d["n_cv_flt"], param_d["n_cv_ln"], param_d["cv_activation"],
                         l=[X_train.shape[1], param_d["DNN:H1"], param_d["DNN:H2"], nb_classes])
@@ -122,7 +126,8 @@ def clst(X_train, y_train, X_test, y_test, nb_classes, disp=True,
     cnn_score = model.score(X_test, y_test)
     y_pred = model.predict(X_test)
     cnn_cf = metrics.confusion_matrix(y_test, y_pred)
-    cnn_mc = metrics.matthews_corrcoef(y_test, y_pred)
+    if matthews_corrcoef_return:
+        cnn_mc = metrics.matthews_corrcoef(y_test, y_pred)
 
     model = ensemble.RandomForestClassifier(n_estimators=param_d['RF:n_estimators'],
                                             oob_score=param_d['RF:oob_score'])
@@ -131,7 +136,8 @@ def clst(X_train, y_train, X_test, y_test, nb_classes, disp=True,
     rf_score = model.score(X_test, y_test)
     y_pred = model.predict(X_test)
     rf_cf = metrics.confusion_matrix(y_test, y_pred)
-    rf_mc = metrics.matthews_corrcoef(y_test, y_pred)
+    if matthews_corrcoef_return:
+        rf_mc = metrics.matthews_corrcoef(y_test, y_pred)
 
     if disp:
         print('Acrracuy, matthews corrcoef, confusion metrics')

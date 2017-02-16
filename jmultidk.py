@@ -20,8 +20,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
 
-# April 24, 2016
-from sklearn import cross_validation, metrics
+# Jan 27, 2017
+#cross_validation is deprecated and replace it to model_selection
+from sklearn import model_selection  #cross_validation
+from sklearn import metrics
 import tensorflow.contrib.learn as skflow
 
 import jpandas as jpd
@@ -559,9 +561,9 @@ class MultiDK_DL( MultiDK):
 		y = self.y
 		print( "Shape of X and y are", X.shape, y.shape)
 
-		X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y,
+		X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y,
 			test_size=0.2, random_state=42)
-		X_train, X_val, y_train, y_val = cross_validation.train_test_split(X_train, y_train,
+		X_train, X_val, y_train, y_val = model_selection.train_test_split(X_train, y_train,
 														  test_size=0.2, random_state=42)
 
 		val_monitor = skflow.monitors.ValidationMonitor(X_val, y_val,
