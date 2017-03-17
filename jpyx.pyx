@@ -660,7 +660,7 @@ def mld_fast( np.ndarray[np.float64_t, ndim=1] r_a,
 # ==================================================================
 # jamespyx_ext/mgh.recon
 # ==================================================================
-def update_recon_pyx(
+def _update_recon_pyx_r0(
         Recon1,  # For complex, direct use is the best approach
         np.ndarray[np.int_t, ndim=2] support):
     cdef float err1 = 1.0
@@ -676,6 +676,32 @@ def update_recon_pyx(
             if support[p, q] == 1:
                 Constraint[p, q] = Recon1_abs[p, q]
                 err1 += Recon1_pwr2[p, q]
+            if Recon1_abs[p, q] > 1:
+                Constraint[p, q] = 1
+                
+    Recon1_update = Constraint * np.exp(1j * np.angle(Recon1))
+
+    return Recon1_update, err1
+
+
+from libc.math cimport pow
+def update_recon_pyx(
+        Recon1,  # For complex, direct use is the best approach
+        long[:,:] support):
+    cdef double err1 = 1.0
+    cdef double[:,:] Constraint = np.ones(Recon1.shape)
+    cdef long R1y, R1x
+    cdef double[:,:] Recon1_abs = np.abs(Recon1)
+    # cdef double[:,:] Recon1_pwr2 = np.power(Recon1_abs, 2)
+    
+    R1y, R1x = Recon1.shape
+    
+    for p in range(R1y):
+        for q in range(R1x):
+            if support[p, q] == 1:
+                Constraint[p, q] = Recon1_abs[p, q]
+                # err1 += Recon1_pwr2[p, q]
+                err1 += pow(Recon1_abs[p, q], 2)
             if Recon1_abs[p, q] > 1:
                 Constraint[p, q] = 1
                 
