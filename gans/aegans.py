@@ -20,7 +20,7 @@ import argparse
 import math
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot, subplot, imshow, axis, figure, title
-
+from sklearn import model_selection
 
 # kera (Underdeveloping)
 class Seq(Sequential):
@@ -140,11 +140,31 @@ def merge_bc_mse(y_true, y_pred):
     #return K.sum(c1, c2)
     return c1 + c2
 
+def daudi_load_data():
+    data = np.load('daudi.npy')
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(data, data, test_size=0.2, random_state=42)
+    return (X_train, y_train), (X_test, y_test)
 
-def train_aegans(BATCH_SIZE, disp=True):
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-    X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
+def get_data(data_name='mnist', test_flag=False):
+    if data_name == 'daudi':
+        (X_train, y_train), (X_test, y_test) = daudi_load_data()
+        if test_flag:
+            X_train = X_test
+        # approximately -0.2+1 to 0.2+1 --> -1. 1
+        X_train = (X_train - 1.0) * 5.0 
+        X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
+    else:
+        (X_train, y_train), (X_test, y_test) = mnist.load_data()
+        if test_flag:
+            X_train = X_test
+        X_train = (X_train.astype(np.float32) - 127.5) / 127.5  
+        X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
+
+    return X_train
+
+def train_aegans(BATCH_SIZE, disp=True, data_name='mnist'):
+    X_train = get_data(data_name=data_name)
+
     discriminator = discriminator_model()
     generator = generator_model()
     discriminator_on_generator = \
@@ -416,3 +436,32 @@ def tsting_and_show(no_images = 100):
     imshow(im, cmap='gray')
     axis('off')
     title('Expansion by AE-GANS')
+
+def testing_and_show(no_images=100, data_name='mnist'):
+    X_test = get_data(data_name, test_flag=True)
+
+    generator = generator_model()
+    generator.compile(loss='binary_crossentropy', optimizer="SGD")
+    generator.load_weights('generator')
+
+    noise = X_test[:,:,::2,::2]
+    generated_images = generator.predict(noise, verbose=1)
+    im = combine_images(generated_images[:no_images])
+    im_org = combine_images(X_test[:no_images])
+    im_dec = combine_images(noise[:no_images])
+
+    figure(figsize=(4*3+2,4))
+    subplot(1,3,1)
+    imshow(im_org, cmap='gray')
+    axis('off')
+    title('Original')
+
+    subplot(1,3,2)
+    imshow(im_dec, cmap='gray')
+    axis('off')
+    title('Input 1/2x1/2 with Interpol')
+
+    subplot(1,3,3)
+    imshow(im, cmap='gray')
+    axis('off')
+    title('Expansion by AE-GANS')    
