@@ -23,8 +23,6 @@ from matplotlib.pyplot import plot, subplot, imshow, axis, figure, title
 from sklearn import model_selection
 
 # kera (Underdeveloping)
-
-
 class Seq(Sequential):
     def __init__(self):
         pass
@@ -137,18 +135,15 @@ def mean_squared_error(y_true, y_pred):
 
 
 def merge_bc_mse(y_true, y_pred):
-    c1 = binary_crossentropy(y_true[:, 0], y_pred[:, 0])
-    c2 = mean_squared_error(y_true[:, 1:], y_pred[:, 1:])
-    # return K.sum(c1, c2)
+    c1 = binary_crossentropy(y_true[:,0], y_pred[:,0])
+    c2 = mean_squared_error(y_true[:,1:], y_pred[:,1:])
+    #return K.sum(c1, c2)
     return c1 + c2
-
 
 def daudi_load_data():
     data = np.load('daudi.npy')
-    X_train, X_test, y_train, y_test = model_selection.train_test_split(
-        data, data, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(data, data, test_size=0.2, random_state=42)
     return (X_train, y_train), (X_test, y_test)
-
 
 def get_data(data_name='mnist', test_flag=False):
     if data_name == 'daudi':
@@ -156,17 +151,16 @@ def get_data(data_name='mnist', test_flag=False):
         if test_flag:
             X_train = X_test
         # approximately -0.2+1 to 0.2+1 --> -1. 1
-        X_train = (X_train - 1.0) * 5.0
+        X_train = (X_train - 1.0) * 5.0 
         X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
     else:
         (X_train, y_train), (X_test, y_test) = mnist.load_data()
         if test_flag:
             X_train = X_test
-        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+        X_train = (X_train.astype(np.float32) - 127.5) / 127.5  
         X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
 
     return X_train
-
 
 def train_aegans(BATCH_SIZE, disp=True, data_name='mnist'):
     X_train = get_data(data_name=data_name)
@@ -219,13 +213,129 @@ def train_aegans(BATCH_SIZE, disp=True, data_name='mnist'):
             g_loss = discriminator_on_generator.train_on_batch(
                 noise, target)
 
-            discriminator.trainable = True
+            discriminator.trainable = True            
             if disp and index % 30 == 0:
                 print("batch %d g_loss : %f" % (index, g_loss))
 
             if index % 10 == 9:
                 generator.save_weights('generator', True)
                 discriminator.save_weights('discriminator', True)
+
+
+class AEGANs_Recon_144x144():
+    def __init__(self, ximages, yimages):
+        self.ximages = ximages.reshape((ximages.shape[0], 1) + ximages.shape[1:])
+        self.yimages = yimages.reshape((yimages.shape[0], 1) + yimages.shape[1:])
+
+    def generator_model(self):  # CDNN Model
+        model = Sequential()
+        model.add(Convolution2D(
+            8, 10, 10,
+            border_mode='same',
+            input_shape=(1, 144, 144)))
+        model.add(BatchNormalization())
+        model.add(Activation('tanh'))
+        model.add(Convolution2D(4, 5, 5, border_mode='same'))
+        model.add(BatchNormalization())
+        model.add(Activation('tanh'))
+        model.add(Convolution2D(1, 2, 2, border_mode='same'))
+        model.add(BatchNormalization())
+        model.add(Activation('tanh'))
+        return model
+
+    def discriminator_model(self):
+        model = Sequential()
+        model.add(Convolution2D(
+            8, 10, 10,
+            border_mode='same',
+            input_shape=(1, 144, 144)))
+        model.add(Activation('tanh'))
+        model.add(MaxPooling2D(pool_size=(4, 4)))
+        model.add(Convolution2D(16, 10, 10))
+        model.add(Activation('tanh'))
+        model.add(MaxPooling2D(pool_size=(4, 4)))
+        model.add(Flatten())
+        model.add(Dense(128))
+        model.add(Activation('tanh'))
+        model.add(Dense(1))
+        model.add(Activation('sigmoid'))
+        return model
+
+    def generator_containing_discriminator_ae(self, generator, discriminator):
+        model_left = Sequential()
+        model_left.add(generator)
+        discriminator.trainable = False
+        model_left.add(discriminator)
+
+        model_right = Sequential()
+        model_right.add(generator)
+        model_right.add(Reshape((144*144,)))
+
+        model = Sequential()
+        model.add(Merge([model_left, model_right], mode='concat', concat_axis=1))
+        return model
+
+    def train(self, BATCH_SIZE, disp=True):
+        ximages = self.ximages
+        yimages = self.yimages
+
+        discriminator = self.discriminator_model()
+        generator = self.generator_model()
+        discriminator_on_generator = \
+            self.generator_containing_discriminator_ae(generator, discriminator)
+        d_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
+        g_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
+        generator.compile(loss='binary_crossentropy', optimizer="SGD")
+        discriminator_on_generator.compile(loss=merge_bc_mse, optimizer=g_optim)
+        discriminator.trainable = True
+        discriminator.compile(loss='binary_crossentropy', optimizer=d_optim)
+        noise = np.zeros((BATCH_SIZE, 100))
+        for epoch in range(100):
+            if disp:
+                print("Epoch is", epoch)
+                print("Number of batches", int(X_train.shape[0] / BATCH_SIZE))
+
+            for index in range(int(X_train.shape[0] / BATCH_SIZE)):
+                # for i in range(BATCH_SIZE):
+                    #noise[i, :] = np.random.uniform(-1, 1, 100)
+                #    noise[i, :] = X_train[i, :].reshape(-1)[np.round(np.linspace(0,783,100)).astype(int)]
+
+                ximage_batch = ximages[index * BATCH_SIZE:(index + 1) * BATCH_SIZE]
+                image_batch = yimages[index * BATCH_SIZE:(index + 1) * BATCH_SIZE]
+                noise = np.random.randn(*image_batch.shape)
+                x_and_n = ximage_batch / np.std(ximage_batch) + noise * 0.1
+                generated_images = generator.predict(x_and_n, verbose=0)
+
+                if index % 30 == 0:
+                    image = combine_images(generated_images)
+                    image = image * 127.5 + 127.5
+                    Image.fromarray(image.astype(np.uint8)).save(
+                        str(epoch) + "_" + str(index) + ".png")
+
+                X = np.concatenate((image_batch, generated_images))
+                y = [1] * BATCH_SIZE + [0] * BATCH_SIZE
+                d_loss = discriminator.train_on_batch(X, y)
+                if disp and index % 30 == 0:
+                    print("batch %d d_loss : %f" % (index, d_loss))
+
+                # noise = image_batch[:, :, ::2, ::2].copy()
+                discriminator.trainable = False
+
+                target_left = np.array([1] * BATCH_SIZE).reshape(BATCH_SIZE, 1)
+                target_right = image_batch.reshape(BATCH_SIZE, -1)
+                target = np.concatenate([target_left, target_right], axis=1)
+                # Debuging code
+                # print("epoch, index, target.shape -->", epoch, index, target.shape)
+                g_loss = discriminator_on_generator.train_on_batch(
+                    x_and_n, target)
+
+                discriminator.trainable = True            
+                if disp and index % 30 == 0:
+                    print("batch %d g_loss : %f" % (index, g_loss))
+
+                if index % 10 == 9:
+                    generator.save_weights('generator', True)
+                    discriminator.save_weights('discriminator', True)
 
 
 def train_org(BATCH_SIZE):
@@ -277,11 +387,10 @@ def train_org(BATCH_SIZE):
 
             # Debuging code
             print("epoch, index, target.shape -->", epoch, index, target.shape)
-
+            
             # g_loss = discriminator_on_generator.train_on_batch(noise, target)
             # g_loss = discriminator_on_generator.train_on_batch(noise, target_left)
-            g_loss = discriminator_on_generator.train_on_batch(
-                noise, [1] * BATCH_SIZE)
+            g_loss = discriminator_on_generator.train_on_batch(noise, [1] * BATCH_SIZE)
 
             discriminator.trainable = True
             if index % 30 == 0:
@@ -399,7 +508,6 @@ def train(BATCH_SIZE):
                 generator.save_weights('generator', True)
                 discriminator.save_weights('discriminator', True)
 
-
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str)
@@ -409,14 +517,12 @@ def get_args():
     args = parser.parse_args()
     return args
 
-
 def to_normal(X_train):
     X_train = (X_train.astype(np.float32) - 127.5) / 127.5
     X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
     return X_train
 
-
-def tsting_and_show(no_images=100):
+def tsting_and_show(no_images = 100):
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
     X_test = to_normal(X_test)
@@ -425,28 +531,27 @@ def tsting_and_show(no_images=100):
     generator.compile(loss='binary_crossentropy', optimizer="SGD")
     generator.load_weights('generator')
 
-    noise = X_test[:, :, ::2, ::2]
+    noise = X_test[:,:,::2,::2]
     generated_images = generator.predict(noise, verbose=1)
     im = combine_images(generated_images[:no_images])
     im_org = combine_images(X_test[:no_images])
     im_dec = combine_images(noise[:no_images])
 
-    figure(figsize=(4 * 3 + 2, 4))
-    subplot(1, 3, 1)
+    figure(figsize=(4*3+2,4))
+    subplot(1,3,1)
     imshow(im_org, cmap='gray')
     axis('off')
     title('Original')
 
-    subplot(1, 3, 2)
+    subplot(1,3,2)
     imshow(im_dec, cmap='gray')
     axis('off')
     title('Input 1/2x1/2 with Interpol')
 
-    subplot(1, 3, 3)
+    subplot(1,3,3)
     imshow(im, cmap='gray')
     axis('off')
     title('Expansion by AE-GANS')
-
 
 def testing_and_show(no_images=100, data_name='mnist'):
     X_test = get_data(data_name, test_flag=True)
@@ -455,162 +560,168 @@ def testing_and_show(no_images=100, data_name='mnist'):
     generator.compile(loss='binary_crossentropy', optimizer="SGD")
     generator.load_weights('generator')
 
-    noise = X_test[:, :, ::2, ::2]
+    noise = X_test[:,:,::2,::2]
     generated_images = generator.predict(noise, verbose=1)
     im = combine_images(generated_images[:no_images])
     im_org = combine_images(X_test[:no_images])
     im_dec = combine_images(noise[:no_images])
 
-    figure(figsize=(4 * 3 + 2, 4))
-    subplot(1, 3, 1)
+    figure(figsize=(4*3+2,4))
+    subplot(1,3,1)
     imshow(im_org, cmap='gray')
     axis('off')
     title('Original')
 
-    subplot(1, 3, 2)
+    subplot(1,3,2)
     imshow(im_dec, cmap='gray')
     axis('off')
     title('Input 1/2x1/2 with Interpol')
 
-    subplot(1, 3, 3)
+    subplot(1,3,3)
     imshow(im, cmap='gray')
     axis('off')
-    title('Expansion by AE-GANS')
+    title('Expansion by AE-GANS')    
 
 
-def generator_model_rate2():  # CDNN Model
-    model = Sequential()
-    model.add(Convolution2D(
-        1, 5, 5,
-        border_mode='same',
-        input_shape=(1, 14, 14)))
-    model.add(BatchNormalization())
-    model.add(Activation('tanh'))
-    model.add(UpSampling2D(size=(2, 2)))
-    model.add(Convolution2D(64, 5, 5, border_mode='same'))
-    model.add(BatchNormalization())
-    model.add(Activation('tanh'))
-    model.add(Convolution2D(1, 5, 5, border_mode='same'))
-    model.add(Activation('tanh'))
-    return model
+class AEGANs_Recon_144x144():
+    def __init__(self, ximages, yimages):
+        self.ximages = ximages.reshape((ximages.shape[0], 1) + ximages.shape[1:])
+        self.yimages = yimages.reshape((yimages.shape[0], 1) + yimages.shape[1:])
 
+    def generator_model(self):  # CDNN Model
+        model = Sequential()
+        model.add(Convolution2D(
+            8, 10, 10,
+            border_mode='same',
+            input_shape=(1, 144, 144)))
+        model.add(BatchNormalization())
+        model.add(Activation('tanh'))
+        model.add(Convolution2D(4, 5, 5, border_mode='same'))
+        model.add(BatchNormalization())
+        model.add(Activation('tanh'))
+        model.add(Convolution2D(1, 2, 2, border_mode='same'))
+        model.add(BatchNormalization())
+        model.add(Activation('tanh'))
+        return model
 
-def generator_model_rate4():  # CDNN Model
-    model = Sequential()
-    model.add(Convolution2D(
-        1, 5, 5,
-        border_mode='same',
-        input_shape=(1, 7, 7)))
-    model.add(BatchNormalization())
-    model.add(Activation('tanh'))
-    model.add(UpSampling2D(size=(2, 2)))
-    model.add(Convolution2D(64, 5, 5, border_mode='same'))
-    model.add(BatchNormalization())
-    model.add(Activation('tanh'))
-    model.add(UpSampling2D(size=(2, 2)))
-    model.add(Convolution2D(1, 5, 5, border_mode='same'))
-    model.add(Activation('tanh'))
-    return model
+    def discriminator_model(self):
+        model = Sequential()
+        model.add(Convolution2D(
+            8, 10, 10,
+            border_mode='same',
+            input_shape=(1, 144, 144)))
+        model.add(Activation('tanh'))
+        model.add(MaxPooling2D(pool_size=(4, 4)))
+        model.add(Convolution2D(16, 10, 10))
+        model.add(Activation('tanh'))
+        model.add(MaxPooling2D(pool_size=(4, 4)))
+        model.add(Flatten())
+        model.add(Dense(128))
+        model.add(Activation('tanh'))
+        model.add(Dense(1))
+        model.add(Activation('sigmoid'))
+        return model
 
+    def generator_containing_discriminator_ae(self, generator, discriminator):
+        model_left = Sequential()
+        model_left.add(generator)
+        discriminator.trainable = False
+        model_left.add(discriminator)
 
-def generator_model_rate(rate=2):
-    if rate == 2:
-        return generator_model_rate2()
-    elif rate == 4:
-        return generator_model_rate4()
-    else:
-        raise ValueError("The entered rate is not supported yet")
+        model_right = Sequential()
+        model_right.add(generator)
+        model_right.add(Reshape((144*144,)))
 
+        model = Sequential()
+        model.add(Merge([model_left, model_right], mode='concat', concat_axis=1))
+        return model
 
-def train_aegans_rate(BATCH_SIZE, rate=2, disp=True, data_name='mnist'):
-    """
-    Currently noise is not added. Later, I will add some noise and test
-    its output is more realistic.
-    """
-    X_train = get_data(data_name=data_name)
+    def train(self, BATCH_SIZE, no_epoch = 100, disp=True):
+        ximages = self.ximages
+        yimages = self.yimages
 
-    discriminator = discriminator_model()
-    generator = generator_model_rate(rate=rate)
-    discriminator_on_generator = \
-        generator_containing_discriminator_ae(generator, discriminator)
-    d_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
-    g_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
-    generator.compile(loss='binary_crossentropy', optimizer="SGD")
-    discriminator_on_generator.compile(loss=merge_bc_mse, optimizer=g_optim)
-    discriminator.trainable = True
-    discriminator.compile(loss='binary_crossentropy', optimizer=d_optim)
-    noise = np.zeros((BATCH_SIZE, 100))
-    for epoch in range(100):
-        if disp:
-            print("Epoch is", epoch)
-            print("Number of batches", int(X_train.shape[0] / BATCH_SIZE))
+        discriminator = self.discriminator_model()
+        generator = self.generator_model()
+        discriminator_on_generator = \
+            self.generator_containing_discriminator_ae(generator, discriminator)
+        d_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
+        g_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
+        generator.compile(loss='binary_crossentropy', optimizer="SGD")
+        discriminator_on_generator.compile(loss=merge_bc_mse, optimizer=g_optim)
+        discriminator.trainable = True
+        discriminator.compile(loss='binary_crossentropy', optimizer=d_optim)
+        noise = np.zeros((BATCH_SIZE, 100))
+        for epoch in range(no_epoch):
+            if disp:
+                print("Epoch is", epoch)
+                print("Number of batches", int(ximages.shape[0] / BATCH_SIZE))
 
-        for index in range(int(X_train.shape[0] / BATCH_SIZE)):
-            # for i in range(BATCH_SIZE):
-                #noise[i, :] = np.random.uniform(-1, 1, 100)
-            #    noise[i, :] = X_train[i, :].reshape(-1)[np.round(np.linspace(0,783,100)).astype(int)]
+            for index in range(int(ximages.shape[0] / BATCH_SIZE)):
+                ximage_batch = ximages[index * BATCH_SIZE:(index + 1) * BATCH_SIZE]
+                image_batch = yimages[index * BATCH_SIZE:(index + 1) * BATCH_SIZE]
+                noise = np.random.randn(*image_batch.shape)
+                x_and_n = ximage_batch / np.std(ximage_batch) + noise * 0.5
+                generated_images = generator.predict(x_and_n, verbose=0)
 
-            image_batch = X_train[index * BATCH_SIZE:(index + 1) * BATCH_SIZE]
-            noise = image_batch[:, :, ::rate, ::rate].copy()
-            generated_images = generator.predict(noise, verbose=0)
+                if index % 30 == 0:
+                    image = combine_images(generated_images)
+                    image = image * 127.5 + 127.5
+                    Image.fromarray(image.astype(np.uint8)).save(
+                        str(epoch) + "_" + str(index) + ".png")
 
-            if index % 30 == 0:
-                image = combine_images(generated_images)
-                image = image * 127.5 + 127.5
-                Image.fromarray(image.astype(np.uint8)).save(
-                    str(epoch) + "_" + str(index) + ".png")
+                X = np.concatenate((image_batch, generated_images))
+                y = [1] * BATCH_SIZE + [0] * BATCH_SIZE
+                d_loss = discriminator.train_on_batch(X, y)
+                if disp and index % 30 == 0:
+                    print("batch %d d_loss : %f" % (index, d_loss))
 
-            X = np.concatenate((image_batch, generated_images))
-            y = [1] * BATCH_SIZE + [0] * BATCH_SIZE
-            d_loss = discriminator.train_on_batch(X, y)
-            if disp and index % 30 == 0:
-                print("batch %d d_loss : %f" % (index, d_loss))
+                # noise = image_batch[:, :, ::2, ::2].copy()
+                discriminator.trainable = False
 
-            noise = image_batch[:, :, ::rate, ::rate].copy()
-            discriminator.trainable = False
+                target_left = np.array([1] * BATCH_SIZE).reshape(BATCH_SIZE, 1)
+                target_right = image_batch.reshape(BATCH_SIZE, -1)
+                target = np.concatenate([target_left, target_right], axis=1)
+                # Debuging code
+                # print("epoch, index, target.shape -->", epoch, index, target.shape)
+                g_loss = discriminator_on_generator.train_on_batch(
+                    x_and_n, target)
 
-            target_left = np.array([1] * BATCH_SIZE).reshape(BATCH_SIZE, 1)
-            target_right = image_batch.reshape(BATCH_SIZE, -1)
-            target = np.concatenate([target_left, target_right], axis=1)
-            # Debuging code
-            # print("epoch, index, target.shape -->", epoch, index, target.shape)
-            g_loss = discriminator_on_generator.train_on_batch(
-                noise, target)
+                discriminator.trainable = True            
+                if disp and index % 30 == 0:
+                    print("batch %d g_loss : %f" % (index, g_loss))
 
-            discriminator.trainable = True
-            if disp and index % 30 == 0:
-                print("batch %d g_loss : %f" % (index, g_loss))
+                if index % 10 == 9:
+                    generator.save_weights('generator', True)
+                    discriminator.save_weights('discriminator', True)
 
-            if index % 10 == 9:
-                generator.save_weights('generator', True)
-                discriminator.save_weights('discriminator', True)
+    def testing_and_show(self, no_images=16, noise_figure=0.5):
+        ximages = self.ximages
+        yimages = self.yimages
 
+        generator = self.generator_model()
+        generator.compile(loss='binary_crossentropy', optimizer="SGD")
+        generator.load_weights('generator')
 
-def testing_and_show_rate(no_images=100, data_name='mnist', rate=2):
-    X_test = get_data(data_name, test_flag=True)
+        noise = np.random.randn(*ximages.shape)
+        x_and_n = ximages / np.std(ximages) + noise * noise_figure
+        generated_images = generator.predict(x_and_n, verbose=0)
 
-    generator = generator_model_rate(rate=rate)
-    generator.compile(loss='binary_crossentropy', optimizer="SGD")
-    generator.load_weights('generator')
+        im = combine_images(generated_images[:no_images])
+        im_org = combine_images(yimages[:no_images])
+        im_dec = combine_images(ximages[:no_images])
 
-    noise = X_test[:, :, ::rate, ::rate]
-    generated_images = generator.predict(noise, verbose=1)
-    im = combine_images(generated_images[:no_images])
-    im_org = combine_images(X_test[:no_images])
-    im_dec = combine_images(noise[:no_images])
+        figure(figsize=(4*3+2,4))
+        subplot(1,3,1)
+        imshow(im_org, cmap='gray')
+        axis('off')
+        title('Original')
 
-    figure(figsize=(4 * 3 + 2, 4))
-    subplot(1, 3, 1)
-    imshow(im_org, cmap='gray')
-    axis('off')
-    title('Original')
+        subplot(1,3,2)
+        imshow(im_dec, cmap='gray')
+        axis('off')
+        title('Input')
 
-    subplot(1, 3, 2)
-    imshow(im_dec, cmap='gray')
-    axis('off')
-    title('Input 1/2x1/2 with Interpol')
-
-    subplot(1, 3, 3)
-    imshow(im, cmap='gray')
-    axis('off')
-    title('Expansion by AE-GANS')
+        subplot(1,3,3)
+        imshow(im, cmap='gray')
+        axis('off')
+        title('Recon by AEGANs')    

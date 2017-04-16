@@ -312,6 +312,43 @@ def gen_cell_db(N=5, rand_pos_cell=False,
     return db_l
 
 
+def gen_bead_db(N, n_beads=3, bead_2r=5, disp=False):
+    """
+    In an image, totally n_beads beads will be displayed. 
+    """
+
+    fig, ax = plt.subplots(figsize=(2, 2))
+
+    db_l = []
+    cell_img_org = gen_cell(
+        bd_on=False, rand_pos_cell=rand_pos_cell,
+        fig=fig, ax=ax, 
+        stat_ext_bd=stat_ext_bd)
+
+    for i in range(N):
+        if disp:
+            print(i, end=",")
+        if rand_pos_cell:
+            cell_img = gen_cell(
+                bd_on=False, rand_pos_cell=rand_pos_cell,
+                max_bd=max_bd,
+                fig=fig, ax=ax,
+                stat_ext_bd=stat_ext_bd)
+        else:
+            cell_img = cell_img_org.copy()
+
+        cellbd_img = gen_cell(
+            bd_on=True, rand_pos_cell=rand_pos_cell,
+            fig=fig, ax=ax,
+            stat_ext_bd=stat_ext_bd)
+
+        db_l.append(cell_img[:, :, 0])  # No RGB Info
+        db_l.append(cellbd_img[:, :, 0])  # No RGB Info
+
+    plt.close(fig)
+    print("The end.")
+    return db_l
+
 def save_cell_db(db_l, fname_gz="sheet.gz/cell_db.cvs.gz"):
     df_l = []
     celltype = 0

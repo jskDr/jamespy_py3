@@ -14,8 +14,21 @@ def show_km(y,
 	km = cluster.KMeans(n)
 	yi = km.fit_predict(y)
 	#c = ['b', 'g', 'r', 'k']
-	for i in range(4):
+	for i in range(n):
 	    sns.tsplot(y[yi==i], color=c[i])
+	plt.title(title)
+
+def show_cluster(y, 
+			yi, 
+			c=['b', 'g', 'r', 'k'],
+			title='Clustering Resutls'):
+	#km = cluster.KMeans(n)
+	#yi = km.fit_predict(y)
+	#c = ['b', 'g', 'r', 'k']
+	set_yi = list(set(yi))
+	n = len(set_yi)
+	for i in set_yi:
+	    sns.tsplot(y[yi==i], color=c[set_yi.index(i)])
 	plt.title(title)
 
 

@@ -838,7 +838,7 @@ class CELL_FD_EXT():
 
       
 #Deep Learning
-def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,     
+def _run_dl_mgh_params_r0(X, y, Lx, Ly, nb_epoch=5000,     
                       batch_size = 128,
                       nb_classes = 2):
 
@@ -910,7 +910,7 @@ def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,
 
 
 #Deep Learning
-def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,     
+def run_dl_mgh_params(X, y, Lx, Ly, nb_epoch=5000,     
                       batch_size = 128,
                       nb_classes = 2):
 
@@ -989,89 +989,8 @@ def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
     plt.show()
     kkeras.plot_loss( history)
 
-run_dl_mgh_params = run_dl_mgh_params_1cl_bn
 
-def run_dl_mgh_params_1cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,     
-                      batch_size = 128,
-                      nb_classes = 2):
-
-    # input image dimensions
-    img_rows, img_cols = Lx, Ly
-    # number of convolutional filters to use
-    nb_filters = 8
-    # size of pooling area for max pooling
-    pool_size = (50, 50)
-    # convolution kernel size
-    kernel_size = (20, 20)
-
-    # the data, shuffled and split between train and test sets
-    X_train, X_test, y_train, y_test = model_selection.train_test_split(X,y, test_size=0.2, random_state=0)
-
-    if K.image_dim_ordering() == 'th':
-        X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
-        X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
-        input_shape = (1, img_rows, img_cols)
-    else:
-        X_train = X_train.reshape(X_train.shape[0], img_rows, img_cols, 1)
-        X_test = X_test.reshape(X_test.shape[0], img_rows, img_cols, 1)
-        input_shape = (img_rows, img_cols, 1)
-
-    X_train = X_train.astype('float32')
-    X_test = X_test.astype('float32')
-    X_train /= 255
-    X_test /= 255
-    print('X_train shape:', X_train.shape)
-    print(X_train.shape[0], 'train samples')
-    print(X_test.shape[0], 'test samples')
-
-    # convert class vectors to binary class matrices
-    Y_train = np_utils.to_categorical(y_train, nb_classes)
-    Y_test = np_utils.to_categorical(y_test, nb_classes)
-
-    model = Sequential()
-
-    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-                            border_mode='valid',
-                            input_shape=input_shape))
-    model.add(BatchNormalization())
-    # model.add(Activation('relu'))
-    model.add(Activation('tanh'))
-    model.add(MaxPooling2D(pool_size=pool_size))
-    model.add(Dropout(0.25))
-
-    model.add(Flatten())
-    model.add(Dense(4))
-    model.add(BatchNormalization())
-    model.add(Activation('tanh'))
-    #model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(nb_classes))
-    model.add(Activation('softmax'))
-
-    model.compile(loss='categorical_crossentropy',
-                  optimizer='adadelta',
-                  metrics=['accuracy'])
-
-    # earlyStopping=callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')
-
-    history = model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-              verbose=0, validation_data=(X_test, Y_test)) #, callbacks=[earlyStopping])
-    score = model.evaluate(X_test, Y_test, verbose=0)
-
-    Y_test_pred = model.predict(X_test, verbose=0)
-    print('Confusion metrix')
-    y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
-    print(metrics.confusion_matrix(y_test, y_test_pred))
-
-    print('Test score:', score[0])
-    print('Test accuracy:', score[1])
-
-    kkeras.plot_acc( history)
-    plt.show()
-    kkeras.plot_loss( history)
-
-
-def run_dl_mgh_params_2cl_bn(X, y, Lx, Ly, nb_epoch=5000,     
+def run_dl_mgh_params_2cl(X, y, Lx, Ly, nb_epoch=5000,     
                       batch_size = 128,
                       nb_classes = 2):
 
@@ -1155,11 +1074,8 @@ def run_dl_mgh_params_2cl_bn(X, y, Lx, Ly, nb_epoch=5000,
     plt.show()
     kkeras.plot_loss( history)
 
-# function name alias
-run_dl_mgh_params_2cl = run_dl_mgh_params_2cl_bn
 
-
-def run_dl_mgh_params_2cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,     
+def run_dl_mgh_params_2cl_do(X, y, Lx, Ly, nb_epoch=5000,     
                       batch_size = 128,
                       nb_classes = 2):
 
@@ -1210,20 +1126,20 @@ def run_dl_mgh_params_2cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,
     # model.add(Activation('relu'))
     model.add(Activation('tanh'))
     model.add(MaxPooling2D(pool_size=pool_size))
-    model.add(Dropout(0.1))
+    model.add(Dropout(0.25))
 
     model.add(Convolution2D(5, 5, 5, border_mode='valid'))
     model.add(BatchNormalization())
     model.add(Activation('tanh'))
     model.add(MaxPooling2D(pool_size=(5,5)))
-    model.add(Dropout(0.1))
+    model.add(Dropout(0.25))
 
     model.add(Flatten())
     model.add(Dense(4))
     model.add(BatchNormalization())
     model.add(Activation('tanh'))
     #model.add(Activation('relu'))
-    model.add(Dropout(0.1))
+    model.add(Dropout(0.5))
     model.add(Dense(nb_classes))
     model.add(Activation('softmax'))
 
@@ -1248,8 +1164,6 @@ def run_dl_mgh_params_2cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,
     kkeras.plot_acc( history)
     plt.show()
     kkeras.plot_loss( history)
-
-run_dl_mgh_params_2cl_do = run_dl_mgh_params_2cl_bn_do
 
 
 """
