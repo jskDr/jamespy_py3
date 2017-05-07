@@ -567,6 +567,7 @@ def save_cell_db_center_cell(db_l, max_bd, fname_gz="sheet.gz/cell_db.cvs.gz"):
         cell_df.to_csv(fname_gz, index=False, compression='gzip')
     return cell_df
 
+
 def pd_gen_cell_db(N=5, 
                      extra_bead_on=True, rand_pos_cell=False, 
                      max_bd=3, 
@@ -575,7 +576,7 @@ def pd_gen_cell_db(N=5,
                      fname_gz=None):
     """
     - Image show without pausing is needed. (Oct 31, 2016)
-    
+
     Parameters
     ==========
     rand_pos_cell, Default=False
@@ -592,41 +593,41 @@ def pd_gen_cell_db(N=5,
     from 0 to max_bd. For example, if N=100 & max_bd=4, 0-beads,
     1-beads, 2-beads and 3-beads cell images are repeated 25 times.  
     """
-    
+
     if classification_mode == "Cancer_Normal_Cell":
-        # 
-        db_l = gen_cell_db(N, rand_pos_cell=rand_pos_cell, 
-                        extra_bead_on=extra_bead_on, 
-                        max_bd=max_bd,
-                        # classification_mode=classification_mode, 
-                        disp=disp)
+        db_l = gen_cell_db(N, rand_pos_cell=rand_pos_cell,
+                           extra_bead_on=extra_bead_on,
+                           max_bd=max_bd,
+                           # classification_mode=classification_mode,
+                           disp=disp)
         cell_df = save_cell_db(db_l, fname_gz=fname_gz)
 
     elif classification_mode == "Center_Cell":
         assert int(N % max_bd) == 0, "N % max_bd should zero in the Center_Cell mode" 
-        db_l = gen_cell_db_center_cell(N, rand_pos_cell=rand_pos_cell, 
-                extra_bead_on=extra_bead_on, 
-                max_bd=max_bd,
-                disp=disp) 
+        db_l = gen_cell_db_center_cell(N, rand_pos_cell=rand_pos_cell,
+                                       extra_bead_on=extra_bead_on,
+                                       max_bd=max_bd,
+                                       disp=disp)
         cell_df = save_cell_db_center_cell(db_l, max_bd, fname_gz=fname_gz)
     else:
         raise ValueError("classification_mode = {} is not supported.".format(classification_mode))    
 
     return cell_df
 
-def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz", 
-                     extra_bead_on=True, rand_pos_cell=False, 
-                     max_bd=3, 
+
+def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz",
+                     extra_bead_on=True, rand_pos_cell=False,
+                     max_bd=3,
                      classification_mode="Cancer_Normal_Cell",
                      disp=False):
 
-    cell_df = pd_gen_cell_db(N=N, 
-                     extra_bead_on=extra_bead_on, 
-                     rand_pos_cell=rand_pos_cell, 
-                     max_bd=max_bd, 
-                     classification_mode=classification_mode,
-                     disp=disp,
-                     fname_gz=fname_gz)
+    cell_df = pd_gen_cell_db(N=N,
+                             extra_bead_on=extra_bead_on,
+                             rand_pos_cell=rand_pos_cell,
+                             max_bd=max_bd,
+                             classification_mode=classification_mode,
+                             disp=disp,
+                             fname_gz=fname_gz)
     return cell_df
 
 

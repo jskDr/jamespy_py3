@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.signal import convolve2d, fftconvolve
-from sklearn import preprocessing, model_selection, metrics 
+from sklearn import preprocessing, model_selection, metrics
 import os
 
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Convolution2D, MaxPooling2D
+from keras.layers import Convolution2D, MaxPooling2D, Conv2D
 from keras.layers.normalization import BatchNormalization
 from keras.utils import np_utils
 from keras import backend as K
@@ -19,7 +19,9 @@ from keras import callbacks
 
 import kkeras
 
+from . import beads
 
+    
 def fig2array(fig):
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
@@ -380,23 +382,25 @@ def gen_cell(bd_on=True,
              fig=fig,
              ax=ax)
 
+
 def gen_cell_n_beads(bd_on=True,
-             rand_pos_cell=False,
-             r_cell=0.1,  # 0<r_cell<=1
-             r_bd=0.05,  # 0<r_bd<=1
-             max_bd=3, # max_bd >= 1
-             rand_bead_flag=False, 
-             # stat_ext_bd=None, # or {'mean':5, 'std':1}
-             stat_ext_bd={'mean':2, 'std':2},
-             bound_flag=True,
-             visible=False,
-             disp=False,
-             fig=None,
-             ax=None):
+                     rand_pos_cell=False,
+                     r_cell=0.1,  # 0<r_cell<=1
+                     r_bd=0.05,  # 0<r_bd<=1
+                     max_bd=3,  # max_bd >= 1
+                     rand_bead_flag=False,
+                     # stat_ext_bd=None, # or {'mean':5, 'std':1}
+                     stat_ext_bd={'mean': 2, 'std': 2},
+                     bound_flag=True,
+                     visible=False,
+                     disp=False,
+                     fig=None,
+                     ax=None):
     """
     Generate cell images
-    The PS bead size is 6 um and silica bead is 5 um. 
-    Lymphoma cell size varies in a larger variance, but the mean value is around 9-12 um.
+    The PS bead size is 6 um and silica bead is 5 um.
+    Lymphoma cell size varies in a larger variance,
+    but the mean value is around 9-12 um.
     
     Inputs
     ======
@@ -434,20 +438,22 @@ def gen_cell_n_beads(bd_on=True,
     circle_d["cell"] = plt.Circle(pos_cell, r_cell, color='w')
     if bd_on:
         if rand_bead_flag:
-            final_max_bd = np.random.randint(max_bd)+1
+            final_max_bd = np.random.randint(max_bd) + 1
         else:
             # Now, the number of total beads attached a cell is fixed (not random).
             final_max_bd = max_bd
 
         for bd_n in range(final_max_bd):
-            circle_d["bd{}".format(bd_n)] = plt.Circle(rand_pos_bd(), r_bd, color='w')
+            circle_d["bd{}".format(bd_n)] = \
+                plt.Circle(rand_pos_bd(), r_bd, color='w')
     
     if stat_ext_bd is not None:
         #n_ext_bd = np.max((0, int(np.random.randn()*stat_ext_bd['std'] + stat_ext_bd['mean'])))
         n_ext_bd = np.random.randint(stat_ext_bd['mean']+1)
         for ext_bd_n in range(n_ext_bd):
             ext_bd_pos = np.random.rand(2)
-            circle_d["ext_bd{}".format(ext_bd_n)] = plt.Circle(ext_bd_pos, r_bd, color='w')
+            circle_d["ext_bd{}".format(ext_bd_n)] = \
+                plt.Circle(ext_bd_pos, r_bd, color='w')
 
     for k in circle_d.keys():
         ax.add_artist(circle_d[k])
@@ -466,9 +472,201 @@ def gen_cell_n_beads(bd_on=True,
 
     return data_a
 
+
+class CELL():
+    def __init__(self, flag_no_overlap_beads=False):
+        self.flag_no_overlap_beads = flag_no_overlap_beads
+
+    def gen(self,
+            bd_on=True,
+            rand_pos_cell=False,
+            r_cell=0.1,  # 0<r_cell<=1
+            r_bd=0.05,  # 0<r_bd<=1
+            max_bd=3,  # max_bd >= 1
+            rand_bead_flag=False,
+            # stat_ext_bd=None, # or {'mean':5, 'std':1}
+            stat_ext_bd={'mean': 2, 'std': 2},
+            bound_flag=True,
+            visible=False,
+            disp=False,
+            fig=None,
+            ax=None):
+
+        if fig is None or ax is None:
+            assert fig is None and ax is None
+            fig, ax = plt.subplots(figsize=(2, 2))
+            # set_axis_bgcolor is not working because of plt.axis('off')
+            # ax.set_axis_bgcolor('red')
+            close_fig_flag = True
+        else:
+            close_fig_flag = False
+        fig.patch.set_facecolor('black')
+
+        circle_d = {}
+
+        if rand_pos_cell:
+            if bound_flag:  # Not generate cells in the boundary
+                B = r_cell + 2.0 * r_bd
+                pos_cell = B + (1.0 - 2 * B) * np.random.random(2)
+            else:
+                pos_cell = np.random.random(2)
+        else:
+            pos_cell = np.array([0.5, 0.5])
+
+        def get_pos_bd(th):
+                return pos_cell + (r_cell + r_bd) * np.array((np.cos(th), np.sin(th)))
+
+        def rand_pos_bd():
+            th = np.random.random() * 2 * np.pi
+            pos_bd = get_pos_bd(th)
+            return pos_bd
+
+        circle_d["cell"] = plt.Circle(pos_cell, r_cell, color='w')
+        if bd_on:
+            if rand_bead_flag:
+                final_max_bd = np.random.randint(max_bd) + 1
+            else:
+                # Now, the number of total beads attached
+                # a cell is fixed (not random).
+                final_max_bd = max_bd
+
+            if not self.flag_no_overlap_beads:
+                rand_pos_bd_l = []
+                for bd_n in range(final_max_bd):
+                    rand_pos_bd_l.append(rand_pos_bd())
+            else:
+                bead_center_l = []
+                cnt = 0
+                while len(bead_center_l) < final_max_bd:
+                    # generate beads until the number of it reaches the limit
+                    bead_center_l = beads.BEADS(r_cell, r_bd).gen_bead_centers(final_max_bd)
+                    cnt += 1
+                    assert cnt < 100, 'Try to reduce the number of beads!'
+                rand_pos_bd_l = [get_pos_bd(th/180*np.pi) for th in bead_center_l]
+
+            for bd_n in range(final_max_bd):
+                circle_d["bd{}".format(bd_n)] = \
+                    plt.Circle(rand_pos_bd_l[bd_n], r_bd, color='w')
+
+        if stat_ext_bd is not None:
+            n_ext_bd = np.random.randint(stat_ext_bd['mean'] + 1)
+            for ext_bd_n in range(n_ext_bd):
+                ext_bd_pos = np.random.rand(2)
+                circle_d["ext_bd{}".format(ext_bd_n)] = \
+                    plt.Circle(ext_bd_pos, r_bd, color='w')
+
+        for k in circle_d.keys():
+            ax.add_artist(circle_d[k])
+        plt.axis('off')
+        data_a = fig2array(fig)
+
+        if disp:
+            print("Image array shape = ", data_a.shape)
+        if visible:
+            plt.show()
+        else:
+            if close_fig_flag:
+                plt.close()
+            else:
+                plt.cla()
+
+        return data_a
+
+
+def gen_cell_n_nooverlap_beads(bd_on=True,
+                               rand_pos_cell=False,
+                               r_cell=0.1,  # 0<r_cell<=1
+                               r_bd=0.05,  # 0<r_bd<=1
+                               max_bd=3,  # max_bd >= 1
+                               rand_bead_flag=False,
+                               # stat_ext_bd=None, # or {'mean':5, 'std':1}
+                               stat_ext_bd={'mean': 2, 'std': 2},
+                               bound_flag=True,
+                               visible=False,
+                               disp=False,
+                               fig=None,
+                               ax=None):
+    """
+    Generate cell images
+    The PS bead size is 6 um and silica bead is 5 um.
+    Lymphoma cell size varies in a larger variance,
+    but the mean value is around 9-12 um.
+    
+    Inputs
+    ======
+    max_bd, int, default=3
+    The number of the maximum beads attached to a cell. 
+    """
+    if fig is None or ax is None:
+        assert fig is None and ax is None
+        fig, ax = plt.subplots(figsize=(2, 2))
+        # set_axis_bgcolor is not working because of plt.axis('off')
+        # ax.set_axis_bgcolor('red')
+        close_fig_flag = True
+    else:
+        close_fig_flag = False
+    fig.patch.set_facecolor('black')
+
+    circle_d = {}
+
+    if rand_pos_cell:
+        if bound_flag:  # Not generate cells in the boundary
+            B = r_cell + 2.0 * r_bd
+            pos_cell = B + (1.0 - 2 * B) * np.random.random(2)
+        else:
+            pos_cell = np.random.random(2)
+    else:
+        pos_cell = np.array([0.5, 0.5])
+
+    def rand_pos_bd():
+        th = np.random.random() * 2 * np.pi
+        pos_bd = pos_cell + (r_cell + r_bd) * \
+            np.array((np.cos(th), np.sin(th)))
+        return pos_bd
+    #print( pos_cell, pos_bd)
+
+    circle_d["cell"] = plt.Circle(pos_cell, r_cell, color='w')
+    if bd_on:
+        if rand_bead_flag:
+            final_max_bd = np.random.randint(max_bd) + 1
+        else:
+            # Now, the number of total beads attached a cell is fixed (not random).
+            final_max_bd = max_bd
+
+        for bd_n in range(final_max_bd):
+            circle_d["bd{}".format(bd_n)] = \
+                plt.Circle(rand_pos_bd(), r_bd, color='w')
+    
+    if stat_ext_bd is not None:
+        #n_ext_bd = np.max((0, int(np.random.randn()*stat_ext_bd['std'] + stat_ext_bd['mean'])))
+        n_ext_bd = np.random.randint(stat_ext_bd['mean']+1)
+        for ext_bd_n in range(n_ext_bd):
+            ext_bd_pos = np.random.rand(2)
+            circle_d["ext_bd{}".format(ext_bd_n)] = \
+                plt.Circle(ext_bd_pos, r_bd, color='w')
+
+    for k in circle_d.keys():
+        ax.add_artist(circle_d[k])
+    plt.axis('off')
+    data_a = fig2array(fig)
+
+    if disp:
+        print("Image array shape = ", data_a.shape)
+    if visible:
+        plt.show()
+    else:
+        if close_fig_flag:
+            plt.close()
+        else:
+            plt.cla()
+
+    return data_a
+
+
 def gen_cell_db_center_cell(N=5, rand_pos_cell=False,
-                            extra_bead_on=True, 
+                            extra_bead_on=True,
                             max_bd=3,
+                            flag_no_overlap_beads=False,
                             disp=False):
     """
     db_l = gen_cell_db(N=5, rand_pos_cell=False, extra_bead_on=True, disp=False) 
@@ -480,30 +678,40 @@ def gen_cell_db_center_cell(N=5, rand_pos_cell=False,
     The number of the maximum beads attached to a cell. 
     """
 
+
+    cellgen = CELL(flag_no_overlap_beads=flag_no_overlap_beads)
     fig, ax = plt.subplots(figsize=(2, 2))
     # ax.set_axis_bgcolor('red')    
 
     if extra_bead_on:
-        stat_ext_bd={'mean':5, 'std':1}
+        stat_ext_bd = {'mean': 5, 'std': 1}
     else:
-        stat_ext_bd=None
+        stat_ext_bd = None
 
     db_l = []
 
     for i in range(N):
         if disp:
             print(i, end=",")
-        
-        # no_beads is circulated from 0 to max_bd-1 
-        # Hence, gen_cell_no_beads should be prepared. 
+        # no_beads is circulated from 0 to max_bd-1
+        # Hence, gen_cell_no_beads should be prepared.
         n_beads = i % max_bd
-        cellbd_img = gen_cell_n_beads(
-            bd_on=True, 
-            rand_pos_cell=rand_pos_cell,
-            max_bd=n_beads, # max_bd is repeated from 0 to max_bd
-            rand_bead_flag=False,
-            fig=fig, ax=ax,
-            stat_ext_bd=stat_ext_bd)
+        cellbd_img = cellgen.gen(bd_on=True,
+                                 rand_pos_cell=rand_pos_cell,
+                                 # max_bd is repeated from 0 to max_bd
+                                 max_bd=n_beads,
+                                 rand_bead_flag=False,
+                                 fig=fig, ax=ax,
+                                 stat_ext_bd=stat_ext_bd)
+
+        # cellbd_img = gen_cell_n_beads(bd_on=True,
+        #                              rand_pos_cell=rand_pos_cell,
+        #                              # max_bd is repeated from 0 to max_bd
+        #                              max_bd=n_beads,
+        #                              rand_bead_flag=False,
+        #                              fig=fig, ax=ax,
+        #                              stat_ext_bd=stat_ext_bd)
+
         db_l.append(cellbd_img[:, :, 0])  # No RGB Info
 
     plt.close(fig)
@@ -533,9 +741,10 @@ def save_cell_db_center_cell(db_l, max_bd, fname_gz="sheet.gz/cell_db.cvs.gz"):
     cell_df.to_csv(fname_gz, index=False, compression='gzip')
     return cell_df
 
-def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz", 
-                     extra_bead_on=True, rand_pos_cell=False, 
-                     max_bd=3, 
+
+def _gen_save_cell_db_r0(N=5, fname_gz="sheet.gz/cell_db.cvs.gz",
+                     extra_bead_on=True, rand_pos_cell=False,
+                     max_bd=3,
                      classification_mode="Cancer_Normal_Cell",
                      disp=False):
     """
@@ -591,6 +800,69 @@ def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz",
         raise ValueError("classification_mode = {} is not supported.".format(classification_mode))    
 
     return cell_df
+
+
+def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz",
+                     extra_bead_on=True, rand_pos_cell=False,
+                     max_bd=3,
+                     classification_mode="Cancer_Normal_Cell",
+                     flag_no_overlap_beads=False,
+                     disp=False):
+    """
+    - Image show without pausing is needed. (Oct 31, 2016)
+    
+    Parameters
+    ==========
+    rand_pos_cell, Default=False
+    If it is True, the position of cell is varied
+    Otherwise, the position is fixed to be the center (0,0). 
+
+    max_bd, int, default=3
+    The number of the maximum beads attached to a cell. 
+
+    classification_mode, string, default="Cancer_Normal"
+    if it is "Cancer_Normal_Cell", this function classifies cancer or normal. 
+    If it is "Center_Cell", this fucntion classifies numer of beads in each cell. 
+    In this case, the number of beads in cells are equaly distributed 
+    from 0 to max_bd. For example, if N=100 & max_bd=4, 0-beads,
+    1-beads, 2-beads and 3-beads cell images are repeated 25 times.  
+    """
+
+    def save(save_fn, db_l, max_bd=None, fname_gz=None):
+        fname_gz_fold, fname_gz_file = os.path.split(fname_gz)
+        os.makedirs(fname_gz_fold, exist_ok=True)
+        if max_bd is None:
+            cell_df = save_fn(db_l, fname_gz=fname_gz)
+        else:
+            cell_df = save_fn(db_l, max_bd, fname_gz=fname_gz)
+        return cell_df
+
+    if classification_mode == "Cancer_Normal_Cell":
+        db_l = gen_cell_db(N, rand_pos_cell=rand_pos_cell,
+                           extra_bead_on=extra_bead_on,
+                           max_bd=max_bd,
+                           # classification_mode=classification_mode,
+                           disp=disp)
+        if disp:
+            print("Saving...")
+        cell_df = save(save_cell_db, db_l, fname_gz=fname_gz)
+
+    elif classification_mode == "Center_Cell":
+        assert int(N % max_bd) == 0, "N % max_bd should zero in the Center_Cell mode" 
+        db_l = gen_cell_db_center_cell(N, rand_pos_cell=rand_pos_cell,
+                                       extra_bead_on=extra_bead_on,
+                                       max_bd=max_bd,
+                                       flag_no_overlap_beads=flag_no_overlap_beads,
+                                       disp=disp)
+        if disp:
+            print("Saving...")
+        cell_df = save(save_cell_db_center_cell, db_l, max_bd,
+                       fname_gz=fname_gz)
+    else:
+        raise ValueError("classification_mode = {} is not supported.".format(classification_mode))    
+
+    return cell_df
+
 
 class obj:
     def __init__(self, r, L=144):
@@ -910,7 +1182,7 @@ def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,
 
 
 #Deep Learning
-def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,     
+def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
                       batch_size = 128,
                       nb_classes = 2):
 
@@ -949,8 +1221,8 @@ def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
 
     model = Sequential()
 
-    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-                            border_mode='valid',
+    model.add(Conv2D(nb_filters, kernel_size,
+                            padding='valid',
                             input_shape=input_shape))
     model.add(BatchNormalization())
     # model.add(Activation('relu'))
@@ -973,13 +1245,14 @@ def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
 
     # earlyStopping=callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')
 
-    history = model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
+    history = model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch,
               verbose=0, validation_data=(X_test, Y_test)) #, callbacks=[earlyStopping])
     score = model.evaluate(X_test, Y_test, verbose=0)
 
     Y_test_pred = model.predict(X_test, verbose=0)
     print('Confusion metrix')
-    y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    # y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    y_test_pred = np.argmax(Y_test_pred, axis=1)
     print(metrics.confusion_matrix(y_test, y_test_pred))
 
     print('Test score:', score[0])
@@ -1060,7 +1333,8 @@ def run_dl_mgh_params_1cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,
 
     Y_test_pred = model.predict(X_test, verbose=0)
     print('Confusion metrix')
-    y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    # y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    y_test_pred = np.argmax(Y_test_pred, axis=1)
     print(metrics.confusion_matrix(y_test, y_test_pred))
 
     print('Test score:', score[0])
@@ -1145,7 +1419,8 @@ def run_dl_mgh_params_2cl_bn(X, y, Lx, Ly, nb_epoch=5000,
 
     Y_test_pred = model.predict(X_test, verbose=0)
     print('Confusion metrix')
-    y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    # y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    y_test_pred = np.argmax(Y_test_pred, axis=1)
     print(metrics.confusion_matrix(y_test, y_test_pred))
 
     print('Test score:', score[0])
@@ -1239,7 +1514,8 @@ def run_dl_mgh_params_2cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,
 
     Y_test_pred = model.predict(X_test, verbose=0)
     print('Confusion metrix')
-    y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    # y_test_pred = np_utils.categorical_probas_to_classes(Y_test_pred)
+    y_test_pred = np.argmax(Y_test_pred, axis=1)
     print(metrics.confusion_matrix(y_test, y_test_pred))
 
     print('Test score:', score[0])
