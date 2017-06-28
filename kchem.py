@@ -1,13 +1,11 @@
-# Python3
-
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import os
+# import pandas as pd
+# import os
 
 # This is James Sungjin Kim's library
-# import jutil
 import kutil
+
 
 def gff_vec( smiles_vec, rad = 2, nBits = 1024):
 	"It generates a fingerprint vector from a smiles code vector"
