@@ -1,17 +1,14 @@
 # mnist.py
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import Conv2D
 from keras.layers import Input, UpSampling2D
 from keras.models import Model
 from keras.utils import np_utils
 from keras import backend as K
-K.set_image_data_format('channel_first')
 
 from mgh import recon
 from . import kkeras
@@ -69,11 +66,11 @@ class CNN():
 
         model = Sequential()
 
-        model.add(Conv2D(nb_filters, kernel_size,
-                         padding='valid',
-                         input_shape=input_shape))
+        model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                                border_mode='valid',
+                                input_shape=input_shape))
         model.add(Activation('relu'))
-        model.add(Conv2D(nb_filters, kernel_size))
+        model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=pool_size))
         model.add(Dropout(0.25))
@@ -89,7 +86,7 @@ class CNN():
                       optimizer='adadelta',
                       metrics=['accuracy'])
 
-        model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch,
+        model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
                   verbose=1, validation_data=(X_test, Y_test))
         score = model.evaluate(X_test, Y_test, verbose=0)
         print('Test score:', score[0])
@@ -106,31 +103,6 @@ def holo_transform(Org):
     X_test_holo = np.array([sim.diffract(x) for x in X_test])
 
     Data = (X_train_holo, dump_train), (X_test_holo, dump_test)
-    return Data
-
-def holo_complex_trainsform(Org):
-    (X_train, y_train), (X_test, y_test) = Org
-
-    print('Performing complex hologram transformation...')
-    sim = recon.Simulator(X_train.shape[1:])
-
-    def holo(X_train):
-        X_train_holo_abs_l = []
-        X_train_holo_ang_l = []
-        for x in X_train:
-            X_train_h = sim.diffract_full(x)
-            X_train_holo_abs_l.append(np.abs(X_train_h))
-            X_train_holo_ang_l.append(np.angle(X_train_h))
-        X_train_holo = np.zeros(
-            (X_train.shape[0], 2, X_train.shape[1], X_train.shape[2]))
-        X_train_holo[:, 0, :, :] = np.array(X_train_holo_abs_l)
-        X_train_holo[:, 1, :, :] = np.array(X_train_holo_ang_l)
-        return X_train_holo
-
-    X_train_holo = holo(X_train)
-    X_test_holo = holo(X_test)
-
-    Data = (X_train_holo, y_train), (X_test_holo, y_test)
     return Data
 
 
@@ -183,7 +155,7 @@ class CNN_HOLO(CNN):
         self.Data = holo_transform(self.Org)
         self.Holo = self.Data
 
-    def holo_complex_transform_r0(self):
+    def holo_complex_transform(self):
         # Transform X_train and X_test using hologram filtering.
         (X_train, y_train), (X_test, y_test) = self.Org
 
@@ -207,12 +179,6 @@ class CNN_HOLO(CNN):
         X_test_holo = holo(X_test)
 
         self.Data = (X_train_holo, y_train), (X_test_holo, y_test)
-        self.Holo_complex = self.Data
-        self.complex_flag = True
-
-    def holo_complex_transform(self):
-        # Transform X_train and X_test using hologram filtering
-        self.Data = holo_complex_transform(self.Org)
         self.Holo_complex = self.Data
         self.complex_flag = True
 
@@ -290,11 +256,11 @@ class CNN_HOLO(CNN):
 
         model = Sequential()
 
-        model.add(Conv2D(nb_filters, kernel_size_1,
-                         padding='valid',
-                         input_shape=input_shape))
+        model.add(Convolution2D(nb_filters, kernel_size_1[0], kernel_size_1[1],
+                                border_mode='valid',
+                                input_shape=input_shape))
         model.add(Activation('relu'))
-        model.add(Conv2D(nb_filters, kernel_size))
+        model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=pool_size))
         model.add(Dropout(0.25))
@@ -310,7 +276,7 @@ class CNN_HOLO(CNN):
                       optimizer='adadelta',
                       metrics=['accuracy'])
 
-        model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch,
+        model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
                   verbose=1, validation_data=(X_test, Y_test))
         score = model.evaluate(X_test, Y_test, verbose=0)
         print('Test score:', score[0])
@@ -497,67 +463,3 @@ class AE_HOLO(AE):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         plt.show()
-
-
-def reduce_resol(X_train, rate=2):
-    X_train = X_train[:, ::rate, ::rate]
-    X_train_zoom = np.zeros((X_train.shape[0], X_train.shape[1] * rate, X_train.shape[2] * rate), dtype=X_train.dtype)
-    for i in range(X_train.shape[0]):
-        X_train_zoom[i] = ndimage.interpolation.zoom(X_train[i], rate)
-    return X_train_zoom
-
-
-class CNN2(CNN):
-        def __init__(self):
-            (X_train, y_train), (X_test, y_test) = mnist.load_data()
-            X_train, X_test = reduce_resol(X_train), reduce_resol(X_test)            
-            self.Org = (X_train, y_train), (X_test, y_test)
-            self.Data = self.Org
-
-        def __init___r0(self):
-            """
-            Load data but reduce the resolution (1/2, 1/2) for x and y direction
-            After that, zoom is applied to expand larger size images. 
-            Then, the further processes are no needed to be updated. 
-            """
-            (X_train, y_train), (X_test, y_test) = mnist.load_data()
-            X_train, X_test = X_train[:, ::2, ::2], X_test[:, ::2, ::2]
-            X_train_zoom = np.zeros((X_train.shape[0], X_train.shape[1] * 2, X_train.shape[2] * 2), dtype=X_train.dtype)
-            X_test_zoom = np.zeros((X_test.shape[0], X_test.shape[1] * 2, X_test.shape[2] * 2), dtype=X_test.dtype)
-            for i in range(X_train.shape[0]):
-                X_train_zoom[i] = ndimage.interpolation.zoom(X_train[i], 2)
-            for i in range(X_test.shape[0]):
-                X_test_zoom[i] = ndimage.interpolation.zoom(X_test[i], 2)
-            self.Org = (X_train_zoom, y_train), (X_test_zoom, y_test)
-            self.Data = self.Org
-
-
-class CNN2_HOLO(CNN_HOLO):
-    def __init__(self):
-        """
-        After hologram, image size whould be reduced and 
-        expanded using linear interpolation.
-        - General hologram will be updated first. 
-        - Same routine will be applied used at CNN2
-        - complex hologram will be updated.
-        """
-        super().__init__()
-
-    def holo_transform(self):
-        (X_train, y_train), (X_test, y_test) = holo_transform(self.Org)
-        X_train, X_test = reduce_resol(X_train), reduce_resol(X_test)
-        self.Data = (X_train, y_train), (X_test, y_test)
-        self.Holo = self.Data
-
-    def holo_complex_transform(self):
-        # Transform X_train and X_test using hologram filtering
-        (X_train_holo, y_train), (X_test_holo, y_test) = holo_complex_transform(self.Org)
-        X_train_holo[:,0,:,:] = reduce_resol(X_train_holo[:,0,:,:])
-        X_train_holo[:,1,:,:] = reduce_resol(X_train_holo[:,1,:,:])
-        X_test_holo[:,0,:,:] = reduce_resol(X_test_holo[:,0,:,:])
-        X_test_holo[:,1,:,:] = reduce_resol(X_test_holo[:,1,:,:])
-
-        self.Data = (X_train_holo, y_train), (X_test_holo, y_test)
-        self.Holo_complex = self.Data
-        self.complex_flag = True
-       

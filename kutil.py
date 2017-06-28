@@ -25,6 +25,7 @@ def _sleast_r0( a = '1000', ln = 10):
     else:
         return a[-ln:]
 
+
 def sleast( a = '1000', ln = 10):
     "It returns 0 filled string with the length of ln."
     if ln > len(a):
@@ -38,12 +39,14 @@ def int_bp( b_ch):
     b_int = int( b_ch)
     return 1 - 2 * b_int
 
+
 def prange( pat, st, ed, ic=1):
     ar = []
     for ii in range( st, ed, ic):
         ar.extend( [ii + jj for jj in pat])
 
     return [x for x in ar if x < ed]
+
 
 class Timer:    
     def __enter__(self):

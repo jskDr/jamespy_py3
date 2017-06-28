@@ -6,8 +6,8 @@ import pandas as pd
 import os
 
 # This is James Sungjin Kim's library
-import jutil
-
+# import jutil
+import kutil
 
 def gff_vec( smiles_vec, rad = 2, nBits = 1024):
 	"It generates a fingerprint vector from a smiles code vector"
@@ -35,7 +35,7 @@ def gff_binlist( smiles_vec, rad = 2, nBits = 1024):
 			print 'So, the minimal value of nBits must be 1024 generally.'
 	return [ map( int, list( '0'*(nBits - len(x[2:])) + x[2:])) for x in ff_bin]
 	"""
-	return [ list(map( int, list( jutil.sleast(x[2:], nBits)))) for x in ff_bin]
+	return [ list(map( int, list( kutil.sleast(x[2:], nBits)))) for x in ff_bin]
 
 def gfb_binlist( smiles_vec, rad = 4, nBits = 1024):
 	"""
@@ -56,7 +56,7 @@ def gfb_binlist( smiles_vec, rad = 4, nBits = 1024):
 			print 'So, the minimal value of nBits must be 1024 generally.'
 	return [ map( int, list( '0'*(nBits - len(x[2:])) + x[2:])) for x in ff_bin]
 	"""
-	return [ list(map( int, list( jutil.sleast(x[2:], nBits)))) for x in ff_bin]
+	return [ list(map( int, list( kutil.sleast(x[2:], nBits)))) for x in ff_bin]
 
 
 def gfp_binlist( smiles_vec, rad = 4, nBits = 1024):
@@ -74,9 +74,9 @@ def gff_binlist_bnbp( smiles_vec, rad = 2, nBits = 1024, bnbp = 'bn'):
 	ff_bin = [ bin(int(x.ToBinary().encode("hex"), 16)) for x in ff_vec]
 
 	if bnbp == 'bp': #bipolar input generation
-		return [ list(map( jutil.int_bp, list( jutil.sleast(x[2:], nBits)))) for x in ff_bin]
+		return [ list(map( kutil.int_bp, list( kutil.sleast(x[2:], nBits)))) for x in ff_bin]
 	else:
-		return [ list(map( int, list( jutil.sleast(x[2:], nBits)))) for x in ff_bin]
+		return [ list(map( int, list( kutil.sleast(x[2:], nBits)))) for x in ff_bin]
 
 def gff_M( smiles_vec, rad = 2, nBits = 1024):
 	"It generated a binary matrix from a smiles code vecor."
@@ -571,7 +571,7 @@ def pd_remove_no_mol2smiles( pdr, smiles_id = 'SMILES'):
 	s = pdr[ smiles_id].tolist()
 	fail_list = get_mol2smiles( s)
 
-	pdr = jutil.pd_remove_faillist_ID( pdr, fail_list)
+	pdr = kutil.pd_remove_faillist_ID( pdr, fail_list)
 
 	return pdr
 

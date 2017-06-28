@@ -678,7 +678,6 @@ def gen_cell_db_center_cell(N=5, rand_pos_cell=False,
     The number of the maximum beads attached to a cell. 
     """
 
-
     cellgen = CELL(flag_no_overlap_beads=flag_no_overlap_beads)
     fig, ax = plt.subplots(figsize=(2, 2))
     # ax.set_axis_bgcolor('red')    
@@ -704,19 +703,12 @@ def gen_cell_db_center_cell(N=5, rand_pos_cell=False,
                                  fig=fig, ax=ax,
                                  stat_ext_bd=stat_ext_bd)
 
-        # cellbd_img = gen_cell_n_beads(bd_on=True,
-        #                              rand_pos_cell=rand_pos_cell,
-        #                              # max_bd is repeated from 0 to max_bd
-        #                              max_bd=n_beads,
-        #                              rand_bead_flag=False,
-        #                              fig=fig, ax=ax,
-        #                              stat_ext_bd=stat_ext_bd)
-
         db_l.append(cellbd_img[:, :, 0])  # No RGB Info
 
     plt.close(fig)
     print("The end.")
     return db_l
+
 
 def save_cell_db_center_cell(db_l, max_bd, fname_gz="sheet.gz/cell_db.cvs.gz"):
     """
@@ -841,7 +833,6 @@ def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz",
         db_l = gen_cell_db(N, rand_pos_cell=rand_pos_cell,
                            extra_bead_on=extra_bead_on,
                            max_bd=max_bd,
-                           # classification_mode=classification_mode,
                            disp=disp)
         if disp:
             print("Saving...")
@@ -859,10 +850,27 @@ def gen_save_cell_db(N=5, fname_gz="sheet.gz/cell_db.cvs.gz",
         cell_df = save(save_cell_db_center_cell, db_l, max_bd,
                        fname_gz=fname_gz)
     else:
-        raise ValueError("classification_mode = {} is not supported.".format(classification_mode))    
+        raise ValueError("classification_mode = {} is not supported.".format(classification_mode))   
 
     return cell_df
 
+
+def gen_save_cell_db_no_overlap(N_each, max_bd_p1 = 4, disp=2):
+    """
+    N_each is the number of cell images for each bead case.
+    max_pd_p1 is max_pd puls 1. 
+    """
+    N = N_each * max_bd_p1
+    max_bd = max_bd_p1 - 1
+    fname_gz="sheet.gz/cell_db{0}_center_cell_{1}_nooverlap.cvs.gz".format(N, max_bd)
+    print("Output file name is", fname_gz)
+
+    return gen_save_cell_db(N = N, fname_gz=fname_gz, 
+                            rand_pos_cell=False, max_bd=max_bd_p1,
+                            classification_mode="Center_Cell", 
+                            extra_bead_on=False, 
+                            flag_no_overlap_beads=True,
+                            disp=disp)
 
 class obj:
     def __init__(self, r, L=144):

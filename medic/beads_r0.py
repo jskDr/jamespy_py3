@@ -8,25 +8,20 @@ def add_sort_center(center_l, center):
     return np.sort(center_l).tolist()
 
 
-def calc_range(center_l, ang, disp=False):
-    """
-    Ang is mapped to the raius of a bead (not diameter of it)
-    """
+def calc_range(center_l, ang):
     center_l = np.sort(center_l).tolist()
 
     range_d = {'st': [], 'ed': []}
-    # the position of an adjacent bead should be 
-    # as far as two times of radius
-    st0 = ang * 2
+    st0 = ang / 2 + ang / 2
     range_d['st'].append(st0)
 
     for center in center_l[1:]:
-        ed = center - ang * 2
-        st = center + ang * 2
+        ed = center - ang / 2 - ang / 2
+        st = center + ang / 2 + ang / 2
         range_d['ed'].append(ed)
         range_d['st'].append(st)
 
-    ed0 = 360 - ang * 2
+    ed0 = 360 - ang / 2 - ang / 2
     range_d['ed'].append(ed0)
 
     range_d['space'] = []
@@ -38,13 +33,9 @@ def calc_range(center_l, ang, disp=False):
 
 def calc_remained_range(range_d, ang):
     remained_range = 0
-    range_d['avaliability'] = []
     for st, ed in zip(range_d['st'], range_d['ed']):
-        if ed - st > 0:
+        if ed - st > ang:
             remained_range += ed - st
-            range_d['avaliability'].append(True)
-        else:
-            range_d['avaliability'].append(False) 
 
     # print("remained_range:", remained_range)
     return remained_range
@@ -57,7 +48,7 @@ def gen_pnt(remained_range):
 def remapping(range_d, pnt_in, ang):
     pnt_out = None
     for st, ed in zip(range_d['st'], range_d['ed']):
-        if ed - st > 0:
+        if ed - st > ang:
             pnt_out = pnt_in + st
         else:
             continue

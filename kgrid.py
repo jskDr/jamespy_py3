@@ -1,8 +1,3 @@
-"""
-grid search codes for machine learning
-Chemistry toolbox such as RDKit is not used. 
-"""
-
 from sklearn import model_selection, linear_model, svm, metrics
 import numpy as np
 import pandas as pd
@@ -11,6 +6,7 @@ from operator import itemgetter
 
 import jutil
 from jsklearn import binary_model
+
 
 def gs_np(X, Y, alphas_log=(-3, 3, 7), method = "Lasso", n_splits=5, disp = False):
     """
@@ -75,10 +71,11 @@ def gs_np(X, Y, alphas_log=(-3, 3, 7), method = "Lasso", n_splits=5, disp = Fals
     
     return df, df_avg, df_best
 
+
 def gs_numpy( method, X, Y, alphas_log = (-1, 1, 9), n_splits=5, n_jobs = -1, disp = True):
     """
     Grid search method with numpy array of X and Y
-    Previously, np.mat are used for compatible with Matlab notation.	
+    Previously, np.mat are used for compatible with Matlab notation.    
     """
     if disp:
         print( X.shape, Y.shape)
@@ -124,6 +121,7 @@ def gs_Lasso_norm( xM, yV, alphas_log = (-1, 1, 9)):
 
     return gs
 
+
 def gs_Lasso_kf( xM, yV, alphas_log_l):
 
     kf5_ext_c = model_selection.KFold( n_splits = 5, shuffle=True)
@@ -142,7 +140,6 @@ def gs_Lasso_kf( xM, yV, alphas_log_l):
         print('Best param:', gs1.best_params_)
         print(gs1.grid_scores_)
 
-
         nz_idx = gs1.best_estimator_.sparse_coef_.indices
         xM_in_nz = xM_in[ :, nz_idx]
 
@@ -158,7 +155,7 @@ def gs_Lasso_kf( xM, yV, alphas_log_l):
         xM_out_nz = xM_out[:, nz_idx]
         score = gs2.score( xM_out_nz, yV_out)
 
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -167,6 +164,7 @@ def gs_Lasso_kf( xM, yV, alphas_log_l):
     print('average scores:', np.mean( score_l))
 
     return score_l
+
 
 def gs_Lasso_kf_ext( xM, yV, alphas_log_l):
 
@@ -207,7 +205,7 @@ def gs_Lasso_kf_ext( xM, yV, alphas_log_l):
         xM_out_nz = xM_out[:, nz_idx]
         score = clf.score( xM_out_nz, yV_out)
 
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -217,12 +215,13 @@ def gs_Lasso_kf_ext( xM, yV, alphas_log_l):
 
     return score_l
 
+
 def gs_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha_l):
     """
     This 2fp case uses two fingerprints at the same in order to 
     combines their preprocessing versions separately. 
     """
-    r2_l2 = list()	
+    r2_l2 = list()  
     for alpha in alpha_l:
         print(alpha)
         r2_l = cv_Ridge_Asupervising_2fp( xM1, xM2, yV, s_l, alpha)
@@ -241,6 +240,7 @@ def _cv_LinearRegression_r0( xM, yV):
 
     return cv_scores
 
+
 def _cv_LinearRegression_r1( xM, yV):
 
     print(xM.shape, yV.shape)
@@ -253,6 +253,7 @@ def _cv_LinearRegression_r1( xM, yV):
     print('R^2 mean, std -->', np.mean( cv_scores), np.std( cv_scores))
 
     return cv_scores
+
 
 def _cv_LinearRegression_r2( xM, yV, scoring = 'r2'):
 
@@ -267,13 +268,14 @@ def _cv_LinearRegression_r2( xM, yV, scoring = 'r2'):
 
     return cv_scores
 
+
 def cv_LinearRegression( xM, yV, n_splits = 5, scoring = 'median_absolute_error', disp = False):
     """
-    metrics.explained_variance_score(y_true, y_pred)	Explained variance regression score function
-    metrics.mean_absolute_error(y_true, y_pred)	Mean absolute error regression loss
-    metrics.mean_squared_error(y_true, y_pred[, ...])	Mean squared error regression loss
-    metrics.median_absolute_error(y_true, y_pred)	Median absolute error regression loss
-    metrics.r2_score(y_true, y_pred[, ...])	R^2 (coefficient of determination) regression score function.
+    metrics.explained_variance_score(y_true, y_pred)    Explained variance regression score function
+    metrics.mean_absolute_error(y_true, y_pred) Mean absolute error regression loss
+    metrics.mean_squared_error(y_true, y_pred[, ...])   Mean squared error regression loss
+    metrics.median_absolute_error(y_true, y_pred)   Median absolute error regression loss
+    metrics.r2_score(y_true, y_pred[, ...]) R^2 (coefficient of determination) regression score function.
     """  
     
     if disp:
@@ -281,7 +283,7 @@ def cv_LinearRegression( xM, yV, n_splits = 5, scoring = 'median_absolute_error'
 
     clf = linear_model.LinearRegression()
     kf5_c = model_selection.KFold( n_splits=n_splits, shuffle=True)
-    kf5 = kf5_c.split( xM)	
+    kf5 = kf5_c.split( xM)  
     cv_score_l = list()
     for train, test in kf5:
         # clf.fit( xM[train,:], yV[train,:])
@@ -299,13 +301,14 @@ def cv_LinearRegression( xM, yV, n_splits = 5, scoring = 'median_absolute_error'
 
     return cv_score_l
 
+
 def cv_LinearRegression_ci( xM, yV, n_splits = 5, scoring = 'median_absolute_error', disp = False):
     """
-    metrics.explained_variance_score(y_true, y_pred)	Explained variance regression score function
-    metrics.mean_absolute_error(y_true, y_pred)	Mean absolute error regression loss
-    metrics.mean_squared_error(y_true, y_pred[, ...])	Mean squared error regression loss
-    metrics.median_absolute_error(y_true, y_pred)	Median absolute error regression loss
-    metrics.r2_score(y_true, y_pred[, ...])	R^2 (coefficient of determination) regression score function.
+    metrics.explained_variance_score(y_true, y_pred)    Explained variance regression score function
+    metrics.mean_absolute_error(y_true, y_pred) Mean absolute error regression loss
+    metrics.mean_squared_error(y_true, y_pred[, ...])   Mean squared error regression loss
+    metrics.median_absolute_error(y_true, y_pred)   Median absolute error regression loss
+    metrics.r2_score(y_true, y_pred[, ...]) R^2 (coefficient of determination) regression score function.
     """  
     
     if disp:
@@ -313,7 +316,7 @@ def cv_LinearRegression_ci( xM, yV, n_splits = 5, scoring = 'median_absolute_err
 
     clf = linear_model.LinearRegression()
     kf5_c = model_selection.KFold( n_splits=n_splits, shuffle=True)
-    kf5 = kf5_c.split( xM)	
+    kf5 = kf5_c.split( xM)  
     cv_score_l = list()
     ci_l = list()
     for train, test in kf5:
@@ -335,13 +338,14 @@ def cv_LinearRegression_ci( xM, yV, n_splits = 5, scoring = 'median_absolute_err
 
     return cv_score_l, ci_l
 
+
 def cv_LinearRegression_ci_pred( xM, yV, n_splits = 5, scoring = 'median_absolute_error', disp = False):
     """
-    metrics.explained_variance_score(y_true, y_pred)	Explained variance regression score function
-    metrics.mean_absolute_error(y_true, y_pred)	Mean absolute error regression loss
-    metrics.mean_squared_error(y_true, y_pred[, ...])	Mean squared error regression loss
-    metrics.median_absolute_error(y_true, y_pred)	Median absolute error regression loss
-    metrics.r2_score(y_true, y_pred[, ...])	R^2 (coefficient of determination) regression score function.
+    metrics.explained_variance_score(y_true, y_pred)    Explained variance regression score function
+    metrics.mean_absolute_error(y_true, y_pred) Mean absolute error regression loss
+    metrics.mean_squared_error(y_true, y_pred[, ...])   Mean squared error regression loss
+    metrics.median_absolute_error(y_true, y_pred)   Median absolute error regression loss
+    metrics.r2_score(y_true, y_pred[, ...]) R^2 (coefficient of determination) regression score function.
     """  
     
     if disp:
@@ -349,7 +353,7 @@ def cv_LinearRegression_ci_pred( xM, yV, n_splits = 5, scoring = 'median_absolut
 
     clf = linear_model.LinearRegression()
     kf5_c = model_selection.KFold( n_splits=n_splits, shuffle=True)
-    kf5 = kf5_c.split( xM)	
+    kf5 = kf5_c.split( xM)  
     cv_score_l = list()
     ci_l = list()
     yVp = yV.copy() 
@@ -375,14 +379,15 @@ def cv_LinearRegression_ci_pred( xM, yV, n_splits = 5, scoring = 'median_absolut
 
     return cv_score_l, ci_l, yVp.A1.tolist()
 
+
 def cv_LinearRegression_ci_pred_full_Ridge( xM, yV, alpha, n_splits = 5, shuffle=True, disp = False):
     """
     Note - scoring is not used. I may used later. Not it is remained for compatibility purpose.
-    metrics.explained_variance_score(y_true, y_pred)	Explained variance regression score function
-    metrics.mean_absolute_error(y_true, y_pred)	Mean absolute error regression loss
-    metrics.mean_squared_error(y_true, y_pred[, ...])	Mean squared error regression loss
-    metrics.median_absolute_error(y_true, y_pred)	Median absolute error regression loss
-    metrics.r2_score(y_true, y_pred[, ...])	R^2 (coefficient of determination) regression score function.
+    metrics.explained_variance_score(y_true, y_pred)    Explained variance regression score function
+    metrics.mean_absolute_error(y_true, y_pred) Mean absolute error regression loss
+    metrics.mean_squared_error(y_true, y_pred[, ...])   Mean squared error regression loss
+    metrics.median_absolute_error(y_true, y_pred)   Median absolute error regression loss
+    metrics.r2_score(y_true, y_pred[, ...]) R^2 (coefficient of determination) regression score function.
     """  
     
     if disp:
@@ -404,7 +409,7 @@ def cv_LinearRegression_ci_pred_full_Ridge( xM, yV, alpha, n_splits = 5, shuffle
         yVp_test = clf.predict( xM[test,:])
         yVp[test] = yVp_test
         
-        # Additionally, coef_ and intercept_ are stored. 		
+        # Additionally, coef_ and intercept_ are stored.        
         ci_l.append( (clf.coef_, clf.intercept_))
         y_a = np.array( yV[test])[:,0]
         yp_a = np.array( yVp_test)[:,0]
@@ -416,11 +421,11 @@ def cv_LinearRegression_ci_pred_full_Ridge( xM, yV, alpha, n_splits = 5, shuffle
 def cv_LinearRegression_ci_pred_full( xM, yV, n_splits = 5, shuffle=True, disp = False):
     """
     Note - scoring is not used. I may used later. Not it is remained for compatibility purpose.
-    metrics.explained_variance_score(y_true, y_pred)	Explained variance regression score function
-    metrics.mean_absolute_error(y_true, y_pred)	Mean absolute error regression loss
-    metrics.mean_squared_error(y_true, y_pred[, ...])	Mean squared error regression loss
-    metrics.median_absolute_error(y_true, y_pred)	Median absolute error regression loss
-    metrics.r2_score(y_true, y_pred[, ...])	R^2 (coefficient of determination) regression score function.
+    metrics.explained_variance_score(y_true, y_pred)    Explained variance regression score function
+    metrics.mean_absolute_error(y_true, y_pred) Mean absolute error regression loss
+    metrics.mean_squared_error(y_true, y_pred[, ...])   Mean squared error regression loss
+    metrics.median_absolute_error(y_true, y_pred)   Median absolute error regression loss
+    metrics.r2_score(y_true, y_pred[, ...]) R^2 (coefficient of determination) regression score function.
     """  
     
     if disp:
@@ -441,7 +446,7 @@ def cv_LinearRegression_ci_pred_full( xM, yV, n_splits = 5, shuffle=True, disp =
         yVp_test = clf.predict( xM[test,:])
         yVp[test] = yVp_test
         
-        # Additionally, coef_ and intercept_ are stored. 		
+        # Additionally, coef_ and intercept_ are stored.        
         ci_l.append( (clf.coef_, clf.intercept_))
         y_a = np.array( yV[test])[:,0]
         yp_a = np.array( yVp_test)[:,0]
@@ -469,6 +474,7 @@ def cv_LinearRegression_It( xM, yV, n_splits = 5, scoring = 'median_absolute_err
         
     return o_d
 
+
 def cv_LinearRegression_ci_It( xM, yV, n_splits = 5, scoring = 'median_absolute_error', N_it = 10, disp = False, ldisp = False):
     """
     N_it times iteration is performed for cross_validation in order to make further average effect. 
@@ -490,6 +496,7 @@ def cv_LinearRegression_ci_It( xM, yV, n_splits = 5, scoring = 'median_absolute_
         print('{0}: mean(+/-std) --> {1}(+/-{2})'.format( scoring, o_d['mean'], o_d['std']))
         
     return o_d
+
 
 def cv_LinearRegression_ci_pred_It( xM, yV, n_splits = 5, scoring = 'median_absolute_error', N_it = 10, disp = False, ldisp = False):
     """
@@ -516,15 +523,16 @@ def cv_LinearRegression_ci_pred_It( xM, yV, n_splits = 5, scoring = 'median_abso
         
     return o_d
 
-def cv_LOO( xM, yV, disp = False, ldisp = False):
+
+def cv_LOO(xM, yV, disp = False, ldisp=False):
     """
     This is a specialized function for LOO cross_validation. 
     """
-    n_splits = xM.shape[0] # for LOO CV
-    return cv_LinearRegression_ci_pred_full_It( xM, yV, n_splits = n_splits, N_it = 1, 
-                                    shuffle = False, disp = disp, ldisp = ldisp)
+    n_splits = xM.shape[0]  # for LOO CV
+    return cv_LinearRegression_ci_pred_full_It(xM, yV, n_splits=n_splits, N_it=1,
+                                               shuffle=False, disp=disp, ldisp= disp)
 
-def cv_LOO_mode( mode, xM, yV, disp = False, ldisp = False):
+def cv_LOO_mode(mode, xM, yV, disp = False, ldisp = False):
     """
     This is a specialized function for LOO cross_validation. 
     """
@@ -547,6 +555,7 @@ def cv_LOO_Ridge( xM, yV, alpha, disp = False, ldisp = False):
     n_splits = xM.shape[0] # for LOO CV
     return cv_LinearRegression_ci_pred_full_It_Ridge( xM, yV, alpha, n_splits = n_splits, N_it = 1, 
                                     shuffle = False, disp = disp, ldisp = ldisp)
+
 
 
 def cv_LinearRegression_ci_pred_full_It_Ridge( xM, yV, alpha, n_splits = 5, N_it = 10, 
@@ -577,6 +586,7 @@ def cv_LinearRegression_ci_pred_full_It_Ridge( xM, yV, alpha, n_splits = 5, N_it
            'yVp': yVp_ltype_l}
     
     return o_d
+
 
 def cv_LinearRegression_ci_pred_full_It( xM, yV, n_splits = 5, N_it = 10, 
                                     shuffle = True, disp = False, ldisp = False):
@@ -631,6 +641,7 @@ def cv_LinearRegression_None( xM, yV):
     
     return o_d
 
+
 def cv_LinearRegression_Bias( xM, yV):
     """
     N_it times iteration is performed for cross_validation in order to make further average effect. 
@@ -678,7 +689,7 @@ def gs_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha_l):
     This 2fp case uses two fingerprints at the same in order to 
     combines their preprocessing versions separately. 
     """
-    r2_l2 = list()	
+    r2_l2 = list()  
     for alpha in alpha_l:
         print(alpha)
         r2_l = cv_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha)
@@ -686,7 +697,7 @@ def gs_Ridge_Asupervising_2fp_molw( xM1, xM2, yV, s_l, alpha_l):
     return r2_l2
 
 def gs_Ridge_Asupervising_molw( xM, yV, s_l, alpha_l):
-    r2_l2 = list()	
+    r2_l2 = list()  
     for alpha in alpha_l:
         print(alpha)
         r2_l = cv_Ridge_Asupervising_molw( xM, yV, s_l, alpha)
@@ -694,7 +705,7 @@ def gs_Ridge_Asupervising_molw( xM, yV, s_l, alpha_l):
     return r2_l2
 
 def gs_Ridge_Asupervising( xM, yV, s_l, alpha_l):
-    r2_l2 = list()	
+    r2_l2 = list()  
     for alpha in alpha_l:
         print(alpha)
         r2_l = cv_Ridge_Asupervising( xM, yV, s_l, alpha)
@@ -740,7 +751,7 @@ def gs_RidgeByLasso_kf_ext( xM, yV, alphas_log_l):
         xM_out_nz = xM_out[:, nz_idx]
         score = clf.score( xM_out_nz, yV_out)
 
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -757,7 +768,7 @@ def gs_SVR( xM, yV, svr_params, n_splits = 5, n_jobs = -1):
     clf = svm.SVR()
     #parmas = {'alpha': np.logspace(1, -1, 9)}
     kf5_c = model_selection.KFold( n_splits=n_splits, shuffle=True)
-    #kf5 = kf5_c.split( xM)	
+    #kf5 = kf5_c.split( xM) 
     gs = model_selection.GridSearchCV( clf, svr_params, scoring = 'r2', cv = kf5_c, n_jobs = n_jobs)
 
     gs.fit( xM, yV.A1)
@@ -768,7 +779,7 @@ def cv_SVR( xM, yV, svr_params, n_splits = 5, n_jobs = -1, grid_std = None, grap
     """
     method can be 'Ridge', 'Lasso'
     cross validation is performed so as to generate prediction output for all input molecules
-    """	
+    """ 
     print(xM.shape, yV.shape)
 
     clf = svm.SVR( **svr_params)
@@ -853,7 +864,7 @@ def gs_SVRByLasso_kf_ext( xM, yV, alphas_log, svr_params):
         xM_out_nz = xM_out[:, nz_idx]
         score = clf.score( xM_out_nz, yV_out.A1)
 
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -861,7 +872,7 @@ def gs_SVRByLasso_kf_ext( xM, yV, alphas_log, svr_params):
     print('all scores:', score_l)
     print('average scores:', np.mean( score_l))
 
-    return score_l	
+    return score_l  
 
 def gs_SVRByLasso( xM, yV, alphas_log, svr_params):
 
@@ -907,7 +918,7 @@ def gs_SVRByLasso( xM, yV, alphas_log, svr_params):
         xM_out_nz = xM_out[:, nz_idx]
         score = clf.score( xM_out_nz, yV_out.A1)
 
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -977,7 +988,7 @@ def gs_SVRByElasticNet( xM, yV, en_params, svr_params):
         xM_out_nz = xM_out[:, nz_idx]
         score = clf.score( xM_out_nz, yV_out.A1)
 
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -1014,7 +1025,7 @@ def gs_GPByLasso( xM, yV, alphas_log):
         nz_idx = gs1.best_estimator_.sparse_coef_.indices
         xM_in_nz = xM_in[ :, nz_idx]
 
-        print('Second GP Stage')		
+        print('Second GP Stage')        
         Xa_in_nz = np.array( xM_in_nz)
         ya_in = np.array( yV_in)
 
@@ -1037,7 +1048,7 @@ def gs_GPByLasso( xM, yV, alphas_log):
         r2, rmse = regress_show( ya_out[:,0], ya_out_pred)
 
         score = r2
-        print(score)		
+        print(score)        
         score_l.append( score)
 
         print('')
@@ -1112,7 +1123,7 @@ def gsLOO( method, xM, yV, alphas_log = (1, -1, 9), n_jobs = 1, scores = "MedAE"
 
         df = pd.DataFrame()
         df["idx(alpha)"] = [idx] * y.shape[0]
-        df["alpha"] = [alpha] * y.shape[0]	
+        df["alpha"] = [alpha] * y.shape[0]  
         df["y"] = y
         df["yp"] = yp
         df["e"] = y - yp
@@ -1189,7 +1200,7 @@ def _cv_r0( method, xM, yV, alpha, n_splits = 5, n_jobs = -1, grid_std = None, g
     """
     method can be 'Ridge', 'Lasso'
     cross validation is performed so as to generate prediction output for all input molecules
-    """	
+    """ 
     print(xM.shape, yV.shape)
 
     clf = getattr( linear_model, method)( alpha = alpha)
@@ -1208,7 +1219,7 @@ def cv( method, xM, yV, alpha, n_splits = 5, n_jobs = -1, grid_std = None, graph
     """
     method can be 'Ridge', 'Lasso'
     cross validation is performed so as to generate prediction output for all input molecules
-    """	
+    """ 
     print(xM.shape, yV.shape)
 
     clf = getattr( linear_model, method)( alpha = alpha)
@@ -1226,7 +1237,7 @@ def cvLOO( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = True):
     """
     method can be 'Ridge', 'Lasso'
     cross validation is performed so as to generate prediction output for all input molecules
-    """	
+    """ 
     n_splits = xM.shape[0]
 
     # print(xM.shape, yV.shape)
@@ -1239,7 +1250,7 @@ def cvLOO( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = True):
         print('The prediction output using cross-validation is given by:')
         jutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
-    return yV_pred	
+    return yV_pred  
 
 def cv_Ridge_BIKE( A_list, yV, XX = None, alpha = 0.5, n_splits = 5, n_jobs = -1, grid_std = None):
 
@@ -1269,7 +1280,7 @@ def cv_BIKE_Ridge( A_list, yV, alpha = 0.5, XX = None, n_splits = 5, n_jobs = -1
     print('The prediction output using cross-validation is given by:')
     jutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
-    return yV_pred	
+    return yV_pred  
 
 
 def topscores( gs):
@@ -1322,7 +1333,7 @@ def gs( method, xM, yV, alphas_log):
     if method == "Lasso":
         return gs_Lasso( xM, yV, alphas_log)
     elif method == "Ridge":
-        return gs_Ridge( xM, yV, alphas_log)	
+        return gs_Ridge( xM, yV, alphas_log)    
     else:
         raise NameError("The method of {} is not supported".format( method))
 

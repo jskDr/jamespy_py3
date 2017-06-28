@@ -23,7 +23,7 @@ def plot_acc(history):
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
+    plt.legend(['train', 'test'], loc=0)
     # plt.show()
 
 
@@ -34,7 +34,7 @@ def plot_loss(history):
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
+    plt.legend(['train', 'test'], loc=0)
     # plt.show()
 
 
