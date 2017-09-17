@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 # from matplotlib import offsetbox
 from sklearn import (manifold, decomposition, ensemble, random_projection)
-
+from mpl_toolkits.mplot3d import Axes3D
 # ----------------------------------------------------------------------
 # Scale and visualize the embedding vectors
 
@@ -20,7 +20,7 @@ def plot_embedding(X, y, title=None, digit=True):
     if digit:
         for i in range(X.shape[0]):
             plt.text(X[i, 0], X[i, 1], str(y[i]),
-                     color=plt.cm.Set1(y[i] / 10.),
+                     color=plt.cm.Set1((y[i] + 1) / 10.),
                      fontdict={'weight': 'bold', 'size': 9})
     else:
         for i in range(X.shape[0]):
@@ -51,9 +51,8 @@ def plot_pca_projection(X, y):
     print("Computing PCA projection")
     t0 = time()
     X_pca = decomposition.TruncatedSVD(n_components=2).fit_transform(X)
-    plot_embedding(X_pca, y,
-                   "Principal Components projection of the digits (time %.2fs)" %
-                   (time() - t0))
+    plot_embedding(X_pca, y, "Principal Components projection")
+    print("(time %.2fs)" % (time() - t0))
 
 
 def plot_isomap(X, y, n_neighbors):
@@ -64,9 +63,8 @@ def plot_isomap(X, y, n_neighbors):
     t0 = time()
     X_iso = manifold.Isomap(n_neighbors, n_components=2).fit_transform(X)
     print("Done.")
-    plot_embedding(X_iso, y,
-                   "Isomap projection of the digits (time %.2fs)" %
-                   (time() - t0))
+    plot_embedding(X_iso, y, "Isomap projection")
+    print("(time %.2fs)" % (time() - t0))
 
 
 def plot_locally_linear_embedding(X, y, n_neighbors):
@@ -79,9 +77,8 @@ def plot_locally_linear_embedding(X, y, n_neighbors):
     t0 = time()
     X_lle = clf.fit_transform(X)
     print("Done. Reconstruction error: %g" % clf.reconstruction_error_)
-    plot_embedding(X_lle, y,
-                   "Locally Linear Embedding of the digits (time %.2fs)" %
-                   (time() - t0))
+    plot_embedding(X_lle, y, "Locally Linear Embedding")
+    print("(time %.2fs)" % (time() - t0))
 
 
 def plot_mds(X, y, n_init=1, max_iter=100):
@@ -93,9 +90,8 @@ def plot_mds(X, y, n_init=1, max_iter=100):
     t0 = time()
     X_mds = clf.fit_transform(X)
     print("Done. Stress: %f" % clf.stress_)
-    plot_embedding(X_mds, y,
-                   "MDS embedding of the digits (time %.2fs)" %
-                   (time() - t0))
+    plot_embedding(X_mds, y, "MDS embedding")
+    print("(time %.2fs)" % (time() - t0))
 
 
 def plot_other_manifold(X, y, n_neighbors, n_estimators=00,
@@ -165,14 +161,32 @@ def plot_other_manifold(X, y, n_neighbors, n_estimators=00,
                    (time() - t0))
 
 
-def plot_tSNE(X, y, random_state=0, digit=True):
+def plot_tSNE(X, y, random_state=0, digit=True,
+              n_components=2, perplexity=30.0, early_exaggeration=12,
+              init='pca'):
     # ----------------------------------------------------------------------
     # t-SNE embedding of the digits dataset
     print("Computing t-SNE embedding")
-    tsne = manifold.TSNE(n_components=2, init='pca', random_state=random_state)
+    tsne = manifold.TSNE(n_components=n_components, perplexity=perplexity,
+                         early_exaggeration=early_exaggeration,
+                         init=init, random_state=random_state)
     t0 = time()
     X_tsne = tsne.fit_transform(X)
 
-    plot_embedding(X_tsne, y,
-                   "t-SNE embedding of the digits (time %.2fs)" %
-                   (time() - t0), digit=digit)
+    plot_embedding(X_tsne, y, "t-SNE embedding")
+    print("(time %.2fs)" % (time() - t0))
+
+
+def plot_tSNE_3D(Xv, y, random_state=0, digit=True,
+                 perplexity=30.0, early_exaggeration=12, init='pca'):
+    n_components = 3
+
+    tsne = manifold.TSNE(n_components=n_components, perplexity=perplexity,
+                         early_exaggeration=early_exaggeration,
+                         init=init, random_state=random_state)
+    Xv_tsne = tsne.fit_transform(Xv)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.scatter(Xv_tsne[:, 0], Xv_tsne[:, 1], Xv_tsne[:, 2], c=y)

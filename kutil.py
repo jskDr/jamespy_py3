@@ -14,7 +14,7 @@ import itertools
 import random
 
 # My personal library
-import j3x.jpyx
+# import j3x.jpyx
 import kchem
 
 

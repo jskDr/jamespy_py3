@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from operator import itemgetter
 
-import jutil
+import kutil
 from jsklearn import binary_model
 
 
@@ -789,7 +789,7 @@ def cv_SVR( xM, yV, svr_params, n_splits = 5, n_jobs = -1, grid_std = None, grap
 
     if graph:
         print('The prediction output using cross-validation is given by:')
-        jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+        kutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
     return yV_pred
 
@@ -1150,7 +1150,7 @@ def gsLOO( method, xM, yV, alphas_log = (1, -1, 9), n_jobs = 1, scores = "MedAE"
         print( "Best idx(alpha) and alpha:", (best_idx, best_df['alpha'][0]))
 
     if graph:
-        jutil.regress_show4( best_df['y'], best_df['yp'])
+        kutil.regress_show4( best_df['y'], best_df['yp'])
 
     return all_df
 
@@ -1210,7 +1210,7 @@ def _cv_r0( method, xM, yV, alpha, n_splits = 5, n_jobs = -1, grid_std = None, g
 
     if graph:
         print('The prediction output using cross-validation is given by:')
-        jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+        kutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
     return yV_pred
 
@@ -1219,17 +1219,17 @@ def cv( method, xM, yV, alpha, n_splits = 5, n_jobs = -1, grid_std = None, graph
     """
     method can be 'Ridge', 'Lasso'
     cross validation is performed so as to generate prediction output for all input molecules
-    """ 
+    """
     print(xM.shape, yV.shape)
 
     clf = getattr( linear_model, method)( alpha = alpha)
     kf_n_c = model_selection.KFold( n_splits=n_splits, shuffle=shuffle)
-    kf_n = kf5_ext_c.split( xM)
+    kf_n = kf_n_c.split( xM)
     yV_pred = model_selection.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
 
     if graph:
         print('The prediction output using cross-validation is given by:')
-        jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+        kutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
     return yV_pred
 
@@ -1248,7 +1248,7 @@ def cvLOO( method, xM, yV, alpha, n_jobs = -1, grid_std = None, graph = True):
 
     if graph:
         print('The prediction output using cross-validation is given by:')
-        jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+        kutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
     return yV_pred  
 
@@ -1263,7 +1263,7 @@ def cv_Ridge_BIKE( A_list, yV, XX = None, alpha = 0.5, n_splits = 5, n_jobs = -1
     yV_pred = model_selection.cross_val_predict( clf, AX_idx, yV, cv = kf_n, n_jobs = n_jobs)
 
     print('The prediction output using cross-validation is given by:')
-    jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+    kutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
     return yV_pred
 
@@ -1278,7 +1278,7 @@ def cv_BIKE_Ridge( A_list, yV, alpha = 0.5, XX = None, n_splits = 5, n_jobs = -1
     yV_pred = model_selection.cross_val_predict( clf, AX_idx, yV, cv = kf_n, n_jobs = n_jobs)
 
     print('The prediction output using cross-validation is given by:')
-    jutil.cv_show( yV, yV_pred, grid_std = grid_std)
+    kutil.cv_show( yV, yV_pred, grid_std = grid_std)
 
     return yV_pred  
 

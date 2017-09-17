@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import os 
 # np.random.seed(1337)  # for reproducibility
 
 from keras.models import Sequential
@@ -16,10 +17,20 @@ from keras.regularizers import l2
 import kutil
 
 
+def save_history_history(fname, history_history, fold=''):
+    np.save(os.path.join(fold, fname), history_history)
+    
+def load_history_history(fname, fold=''):
+    history_history = np.load(os.path.join(fold, fname)).item(0)
+    return history_history
+
 def plot_acc(history):
     # summarize history for accuracy
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
+    if not isinstance(history, dict):
+        history = history.history
+
+    plt.plot(history['acc'])
+    plt.plot(history['val_acc'])
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
@@ -29,8 +40,11 @@ def plot_acc(history):
 
 def plot_loss(history):
     # summarize history for loss
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
+    if not isinstance(history, dict):
+        history = history.history
+
+    plt.plot(history['loss'])
+    plt.plot(history['val_loss'])
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
@@ -39,10 +53,12 @@ def plot_loss(history):
 
 
 def plot_history(history):
-    plt.subplot(2,1,1)
+    plt.figure(figsize=(15, 5))
+    plt.subplot(1, 2, 1)
     plot_acc(history)
-    plt.subplot(2,1,2)
+    plt.subplot(1, 2, 2)
     plot_loss(history)
+
 
 class MLPC():
     """

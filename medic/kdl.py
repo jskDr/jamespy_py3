@@ -21,7 +21,7 @@ import kkeras
 
 from . import beads
 
-    
+
 def fig2array(fig):
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
@@ -1118,9 +1118,9 @@ class CELL_FD_EXT():
 
       
 #Deep Learning
-def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,     
-                      batch_size = 128,
-                      nb_classes = 2):
+def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,
+                             batch_size = 128,
+                             nb_classes = 2):
 
     # input image dimensions
     img_rows, img_cols = Lx, Ly
@@ -1132,7 +1132,7 @@ def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,
     kernel_size = (20, 20)
 
     # the data, shuffled and split between train and test sets
-    X_train, X_test, y_train, y_test = model_selection.train_test_split(X,y, test_size=0.2, random_state=0)
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2, random_state=0)
 
     if K.image_dim_ordering() == 'th':
         X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
@@ -1175,24 +1175,24 @@ def run_dl_mgh_params_1cl_do(X, y, Lx, Ly, nb_epoch=5000,
                   optimizer='adadelta',
                   metrics=['accuracy'])
 
-    earlyStopping=callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')
+    earlyStopping = callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')
 
     history = model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-              verbose=0, validation_data=(X_test, Y_test)) #, callbacks=[earlyStopping])
+                        verbose=0, validation_data=(X_test, Y_test))
     score = model.evaluate(X_test, Y_test, verbose=0)
 
     print('Test score:', score[0])
     print('Test accuracy:', score[1])
 
-    kkeras.plot_acc( history)
+    kkeras.plot_acc(history)
     plt.show()
-    kkeras.plot_loss( history)        
+    kkeras.plot_loss(history)
 
 
-#Deep Learning
+# Deep Learning
 def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
-                      batch_size = 128,
-                      nb_classes = 2):
+                             batch_size=128,
+                             nb_classes=2):
 
     # input image dimensions
     img_rows, img_cols = Lx, Ly
@@ -1204,7 +1204,7 @@ def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
     kernel_size = (20, 20)
 
     # the data, shuffled and split between train and test sets
-    X_train, X_test, y_train, y_test = model_selection.train_test_split(X,y, test_size=0.2, random_state=0)
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2, random_state=0)
 
     if K.image_dim_ordering() == 'th':
         X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
@@ -1254,7 +1254,7 @@ def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
     # earlyStopping=callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')
 
     history = model.fit(X_train, Y_train, batch_size=batch_size, epochs=nb_epoch,
-              verbose=0, validation_data=(X_test, Y_test)) #, callbacks=[earlyStopping])
+                        verbose=0, validation_data=(X_test, Y_test))  #, callbacks=[earlyStopping])
     score = model.evaluate(X_test, Y_test, verbose=0)
 
     Y_test_pred = model.predict(X_test, verbose=0)
@@ -1266,11 +1266,13 @@ def run_dl_mgh_params_1cl_bn(X, y, Lx, Ly, nb_epoch=5000,
     print('Test score:', score[0])
     print('Test accuracy:', score[1])
 
-    kkeras.plot_acc( history)
+    kkeras.plot_acc(history)
     plt.show()
-    kkeras.plot_loss( history)
+    kkeras.plot_loss(history)
+
 
 run_dl_mgh_params = run_dl_mgh_params_1cl_bn
+
 
 def run_dl_mgh_params_1cl_bn_do(X, y, Lx, Ly, nb_epoch=5000,     
                       batch_size = 128,

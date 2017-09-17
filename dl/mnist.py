@@ -2,20 +2,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage
-from keras.datasets import mnist
+from keras.datasets import mnist, cifar10
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import Conv2D
+from keras.layers import MaxPooling2D
+from keras.layers import Conv2D  # Convolution2D
 from keras.layers import Input, UpSampling2D
 from keras.models import Model
 from keras.utils import np_utils
 from keras import backend as K
-K.set_image_data_format('channel_first')
 
 from mgh import recon
 from . import kkeras
 
+K.set_image_data_format('channels_first')
 np.random.seed(1337)  # for reproducibility
 
 
@@ -33,8 +33,6 @@ class CNN():
         nb_classes = 10
         nb_epoch = nb_epoch
 
-        # input image dimensions
-        img_rows, img_cols = 28, 28
         # number of convolutional filters to use
         nb_filters = 32
         # size of pooling area for max pooling
@@ -46,7 +44,11 @@ class CNN():
         # (X_train, y_train), (X_test, y_test) = mnist.load_data()
         (X_train, y_train), (X_test, y_test) = self.Data
 
-        if K.image_dim_ordering() == 'th':
+        ny, nx = X_train.shape[1:]
+        # input image dimensions
+        img_rows, img_cols = ny, nx
+
+        if K.image_data_format() == 'channels_first':
             X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
             X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
             input_shape = (1, img_rows, img_cols)
@@ -108,7 +110,8 @@ def holo_transform(Org):
     Data = (X_train_holo, dump_train), (X_test_holo, dump_test)
     return Data
 
-def holo_complex_trainsform(Org):
+
+def holo_complex_transform(Org):
     (X_train, y_train), (X_test, y_test) = Org
 
     print('Performing complex hologram transformation...')
@@ -154,8 +157,10 @@ def recon_transform(Holo):
 def update2(x_train, x_test):
     x_train = x_train.astype('float32') / 255.
     x_test = x_test.astype('float32') / 255.
-    x_train = np.reshape(x_train, (len(x_train), 1, 28, 28))
-    x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
+
+    ny, nx = x_train.shape[1:]
+    x_train = np.reshape(x_train, (len(x_train), 1, ny, nx))
+    x_test = np.reshape(x_test, (len(x_test), 1, ny, nx))
     return x_train, x_test
 
 
@@ -254,8 +259,6 @@ class CNN_HOLO(CNN):
         nb_classes = 10
         nb_epoch = nb_epoch
 
-        # input image dimensions
-        img_rows, img_cols = 28, 28
         # number of convolutional filters to use
         nb_filters = 32
         # size of pooling area for max pooling
@@ -270,6 +273,10 @@ class CNN_HOLO(CNN):
         (X_train, y_train), (X_test, y_test) = self.Data
         # number of input data sets - abs and angle
         nb_rgb = X_train.shape[1]
+
+        ny, nx = self.Data.shape[1:]
+        # input image dimensions
+        img_rows, img_cols = ny, nx
 
         if K.image_dim_ordering() == 'th':
             input_shape = (nb_rgb, img_rows, img_cols)
@@ -317,147 +324,154 @@ class CNN_HOLO(CNN):
         print('Test accuracy:', score[1])
 
 
+def rgb2gray(X_train):
+    R = X_train[:, 0]
+    G = X_train[:, 1]
+    B = X_train[:, 2]
+    X_train_gray = 0.299 * R + 0.587 * G + 0.114 * B
+    return X_train_gray
+
+
 class AE:
-    def __init__(self):
-        (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    def __init__(self, data_name="MNIST", binary_mode=True):
+        """
+        data_name can be MNIST, etc. (default is MNIST)
+        """
+        self.data_name = data_name
+        (X_train, y_train), (X_test, y_test) = self.load_data()
+        # (X_train, y_train), (X_test, y_test) = mnist.load_data()
         # Modify input and output data to be appropritate for AE
         self.Org = (X_train, X_train), (X_test, X_test)
         self.Data = self.Org
+        self.binary_mode = binary_mode
 
-    def modeling(self):
-        input_img = Input(shape=(1, 28, 28))
-        # set-1
-        x = Convolution2D(16, 3, 3, activation='relu',
-                          border_mode='same')(input_img)  # 16,28,28
-        x = MaxPooling2D((2, 2), border_mode='same')(x)  # 16,14,14
+    def load_data(self):
+        data_name = self.data_name
+        if data_name == "MNIST":
+            return mnist.load_data()
+        elif data_name == "CIFAR10-GRAY":
+            (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+            X_train_gray = rgb2gray(X_train)
+            X_test_gray = rgb2gray(X_test)
+            return (X_train_gray, y_train), (X_test_gray, y_test)
+        else:
+            raise ValueError("data_name of {} is not supported!".format(data_name))
+
+    def modeling(self, input_img=Input(shape=(1, 28, 28))):
+        # mode: binary or not (non-binary)
+        binary_mode = self.binary_mode
+
+        # set-1                                         1, ny, nx
+        x = Conv2D(16, (3, 3), activation='relu',
+                   padding='same')(input_img)        # 16, ny, nx
+        x = MaxPooling2D((2, 2), padding='same')(x)  # 16, ny/2,nx/2
         x = Dropout(0.25)(x)  # Use dropout after maxpolling
 
         # set-2
-        x = Convolution2D(8, 3, 3, activation='relu',
-                          border_mode='same')(x)  # 8,14,14
-        x = MaxPooling2D((2, 2), border_mode='same')(x)  # 8,7,7
+        x = Conv2D(8, (3, 3), activation='relu',
+                   padding='same')(x)  # 8,14,14
+        x = MaxPooling2D((2, 2), padding='same')(x)  # 8, ny/4, nx/4
         x = Dropout(0.25)(x)  # Use dropout after maxpolling
 
         # set-3
-        x = Convolution2D(8, 3, 3, activation='relu',
-                          border_mode='same')(x)  # 8,7,7
+        x = Conv2D(8, (3, 3), activation='relu',
+                   padding='same')(x)                # 8, ny/4, nx/4
         encoded = x
 
-        x = Convolution2D(8, 3, 3, activation='relu',
-                          border_mode='same')(encoded)  # 8,7,7
+        x = Conv2D(8, (3, 3), activation='relu',
+                   padding='same')(encoded)          # 8, ny/4, nx/4
         # x = Dropout(0.25)(x) # Use dropout after maxpolling
 
-        x = UpSampling2D((2, 2))(x)  # 8,14,14
-        x = Convolution2D(8, 3, 3, activation='relu',
-                          border_mode='same')(x)  # 8,14,14
+        x = UpSampling2D((2, 2))(x)                  # 8, ny/2, nx/2
+        x = Conv2D(8, (3, 3), activation='relu',     # 8, ny/2, nx/2
+                   padding='same')(x)
         # x = Dropout(0.25)(x) # Use dropout after maxpolling
 
-        x = UpSampling2D((2, 2))(x)  # 8, 28, 28
-        x = Convolution2D(16, 3, 3, activation='relu',
-                          border_mode='same')(x)  # 16, 28, 28
+        x = UpSampling2D((2, 2))(x)                  # 8, ny, nx
+        x = Conv2D(16, (3, 3), activation='relu',
+                   padding='same')(x)                # 16, ny, nx
         # x = Dropout(0.25)(x) # Use dropout after maxpolling
-        decoded = Convolution2D(
-            1, 3, 3, activation='sigmoid', border_mode='same')(x)  # 1, 28, 28
+        if binary_mode:
+            decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)  # 1, ny, nx
+        else:
+            decoded = Conv2D(1, (3, 3), padding='same')(x)  # 1, ny, nx
 
         autoencoder = Model(input_img, decoded)
-        autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
 
         self.autoencoder = autoencoder
+        self.model_compile()
 
-    def run(self, nb_epoch=100):
+    def model_compile(self):
+        binary_mode = self.binary_mode
+        autoencoder = self.autoencoder
+        if binary_mode:
+            autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+        else:
+            autoencoder.compile(optimizer='adadelta', loss='mse')
+
+    def run(self, epochs=10):
         (x_train_in, x_train), (x_test_in, x_test) = self.Data
+        ny, nx = x_train_in.shape[1:]
 
+        # Update 2 reshape from 3d to 4d array by including a channel element
         x_train_in, x_test_in = update2(x_train_in, x_test_in)
         x_train, x_test = update2(x_train, x_test)
 
-        self.modeling()
+        self.modeling(input_img=Input(shape=(1, ny, nx)))
         autoencoder = self.autoencoder
         history = autoencoder.fit(x_train_in, x_train,
-                                  nb_epoch=nb_epoch,
+                                  epochs=epochs,
                                   batch_size=128,
                                   shuffle=True,
                                   verbose=1,
-                                  validation_data=(x_test, x_test))
+                                  validation_data=(x_test_in, x_test))
         kkeras.plot_loss(history)
 
         self.imshow()
 
-    #def imshow(self, x_test, x_test_in):
     def imshow(self):
         (_, _), (x_test_in, x_test) = self.Data
         x_test_in, x_test = update2(x_test_in, x_test)
         autoencoder = self.autoencoder
         decoded_imgs = autoencoder.predict(x_test_in)
 
+        ny, nx = x_test.shape[2:]
         n = 10
-        plt.figure(figsize=(20, 4))
+        plt.figure(figsize=(20, 2 * 3 + 2))
         for i in range(n):
-            # display original
-            ax = plt.subplot(2, n, i + 1)
-            plt.imshow(x_test[i].reshape(28, 28))
-            plt.gray()
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-
-            # display reconstruction
-            ax = plt.subplot(2, n, i + n + 1)
-            plt.imshow(decoded_imgs[i].reshape(28, 28))
-            plt.gray()
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-        plt.show()
-
-
-class _AE_HOLO_r0(AE):
-    def __init__(self):
-        """
-        Hologram transformation is performed
-        """
-        super().__init__()
-
-    def holo_transform(self):
-        (x_train, _), (x_test, _) = self.Org
-        (x_train_in, _), (x_test_in, _) = holo_transform(self.Org)
-        self.Data = (x_train_in, x_train), (x_test_in, x_test)
-        self.Holo = self.Data
-
-    def imshow(self):
-        (_, _), (x_test_in, x_test) = self.Data
-        x_test_in, x_test = update2(x_test_in, x_test)
-        autoencoder = self.autoencoder
-        decoded_imgs = autoencoder.predict(x_test_in)
-
-        n = 10
-        plt.figure(figsize=(20, 4))
-        for i in range(n):
-            # display original
+            # AE Input
             ax = plt.subplot(3, n, i + 1)
-            plt.imshow(x_test[i].reshape(28, 28))
+            plt.imshow(x_test_in[i].reshape(ny, nx))
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
+            plt.title('AE Input')
 
-            ax = plt.subplot(3, n, n + i + 1)
-            plt.imshow(x_test_in[i].reshape(28, 28))
+            # AE Traget
+            ax = plt.subplot(3, n, i + n + 1)
+            plt.imshow(x_test[i].reshape(ny, nx))
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
+            plt.title('AE Target')
 
-            # display reconstruction
-            ax = plt.subplot(3, n, n * 2 + i + 1)
-            plt.imshow(decoded_imgs[i].reshape(28, 28))
+            # AE Output
+            ax = plt.subplot(3, n, i + 2 * n + 1)
+            plt.imshow(decoded_imgs[i].reshape(ny, nx))
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
+            plt.title('AE Output')
         plt.show()
 
 
 class AE_HOLO(AE):
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Hologram transformation is performed
+        **kwargs are used for AE
         """
-        super().__init__()
+        super().__init__(**kwargs)
         (x_train, _), (x_test, _) = self.Org
         x_train_in, x_test_in = x_train, x_test
         self.Org = (x_train_in, x_train), (x_test_in, x_test)
@@ -474,25 +488,155 @@ class AE_HOLO(AE):
         autoencoder = self.autoencoder
         decoded_imgs = autoencoder.predict(x_test_in)
 
+        ny, nx = x_test_in.shape[2:]
         n = 10
         plt.figure(figsize=(20, 4))
         for i in range(n):
             # display original
             ax = plt.subplot(3, n, i + 1)
-            plt.imshow(x_test[i].reshape(28, 28))
+            plt.imshow(x_test[i].reshape(ny, nx))
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
 
             ax = plt.subplot(3, n, n + i + 1)
-            plt.imshow(x_test_in[i].reshape(28, 28))
+            plt.imshow(x_test_in[i].reshape(ny, nx))
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
 
             # display reconstruction
             ax = plt.subplot(3, n, n * 2 + i + 1)
-            plt.imshow(decoded_imgs[i].reshape(28, 28))
+            plt.imshow(decoded_imgs[i].reshape(ny, nx))
+            plt.gray()
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+        plt.show()
+
+
+class AE_HOLO_EXT(AE_HOLO):
+    def __init__(self, new_shape=None, **kwargs):
+        """
+        Hologram transformation is performed
+        """
+        self.new_shape = new_shape
+        super().__init__(**kwargs)
+
+    def load_data(self):
+        new_shape = self.new_shape
+
+        if self.new_shape is None:
+            return super().load_data()
+        else:
+            (X_train, y_train), (X_test, y_test) = super().load_data()
+            X_train_new = padding_zeros(X_train, new_shape=new_shape)
+            X_test_new = padding_zeros(X_test, new_shape=new_shape)
+            return (X_train_new, y_train), (X_test_new, y_test)
+
+
+class AE_HOLO_MODEL(AE_HOLO_EXT):
+    def __init__(self, modeling_type="large_1st", **kwargs):
+        """
+        modeling_type can be None or 'large_1st'
+        """
+        self.modeling_type = modeling_type
+        super().__init__(**kwargs)
+
+    def modeling(self, input_img=Input(shape=(1, 28, 28))):
+        if self.modeling_type is None:
+            return super().modeling(input_img=input_img)
+        elif self.modeling_type == 'large_1st':
+            return self.modeling_large_1st(input_img=input_img)
+        else:
+            raise ValueError("Specify new modeling_type!")
+
+    def modeling_large_1st(self, input_img=Input(shape=(1, 28, 28))):
+        # mode: binary or not (non-binary)
+        binary_mode = self.binary_mode
+
+        # Additional large filters at the 1st layer
+        ny, nx = int(input_img.shape[2]), int(input_img.shape[3])
+        x = Conv2D(1, (ny, nx), activation='linear',
+                   padding='same')(input_img)        # 16, ny, nx
+        frontstage_out = x
+
+        # set-1                                         1, ny, nx
+        x = Conv2D(16, (3, 3), activation='relu',
+                   padding='same')(x)        # 16, ny, nx
+        x = MaxPooling2D((2, 2), padding='same')(x)  # 16, ny/2,nx/2
+        x = Dropout(0.25)(x)  # Use dropout after maxpolling
+
+        # set-2
+        x = Conv2D(8, (3, 3), activation='relu',
+                   padding='same')(x)  # 8,14,14
+        x = MaxPooling2D((2, 2), padding='same')(x)  # 8, ny/4, nx/4
+        x = Dropout(0.25)(x)  # Use dropout after maxpolling
+
+        # set-3
+        x = Conv2D(8, (3, 3), activation='relu',
+                   padding='same')(x)                # 8, ny/4, nx/4
+        encoded = x
+
+        x = Conv2D(8, (3, 3), activation='relu',
+                   padding='same')(encoded)          # 8, ny/4, nx/4
+        # x = Dropout(0.25)(x) # Use dropout after maxpolling
+
+        x = UpSampling2D((2, 2))(x)                  # 8, ny/2, nx/2
+        x = Conv2D(8, (3, 3), activation='relu',     # 8, ny/2, nx/2
+                   padding='same')(x)
+        # x = Dropout(0.25)(x) # Use dropout after maxpolling
+
+        x = UpSampling2D((2, 2))(x)                  # 8, ny, nx
+        x = Conv2D(16, (3, 3), activation='relu',
+                   padding='same')(x)                # 16, ny, nx
+        # x = Dropout(0.25)(x) # Use dropout after maxpolling
+        if binary_mode:
+            decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(x)  # 1, ny, nx
+        else:
+            decoded = Conv2D(1, (3, 3), padding='same')(x)  # 1, ny, nx
+
+        autoencoder = Model(input_img, decoded)
+
+        self.autoencoder = autoencoder
+        self.model_compile()
+
+        # Make additional model
+        self.frontstage = Model(input_img, frontstage_out)
+
+    def imshow(self):
+        (_, _), (x_test_in, x_test) = self.Data
+        x_test_in, x_test = update2(x_test_in, x_test)
+        autoencoder = self.autoencoder
+        frontstage = self.frontstage
+        frontstage_out = frontstage.predict(x_test_in)
+        decoded_imgs = autoencoder.predict(x_test_in)
+
+        ny, nx = x_test_in.shape[2:]
+        n = 10
+        plt.figure(figsize=(20, 5))
+        for i in range(n):
+            # display original
+            ax = plt.subplot(4, n, i + 1)
+            plt.imshow(x_test[i].reshape(ny, nx))
+            plt.gray()
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+            ax = plt.subplot(4, n, n + i + 1)
+            plt.imshow(x_test_in[i].reshape(ny, nx))
+            plt.gray()
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+            ax = plt.subplot(4, n, n * 2 + i + 1)
+            plt.imshow(frontstage_out[i].reshape(ny, nx))
+            plt.gray()
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+            # display reconstruction
+            ax = plt.subplot(4, n, n * 3 + i + 1)
+            plt.imshow(decoded_imgs[i].reshape(ny, nx))
             plt.gray()
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
@@ -510,15 +654,15 @@ def reduce_resol(X_train, rate=2):
 class CNN2(CNN):
         def __init__(self):
             (X_train, y_train), (X_test, y_test) = mnist.load_data()
-            X_train, X_test = reduce_resol(X_train), reduce_resol(X_test)            
+            X_train, X_test = reduce_resol(X_train), reduce_resol(X_test)
             self.Org = (X_train, y_train), (X_test, y_test)
             self.Data = self.Org
 
         def __init___r0(self):
             """
             Load data but reduce the resolution (1/2, 1/2) for x and y direction
-            After that, zoom is applied to expand larger size images. 
-            Then, the further processes are no needed to be updated. 
+            After that, zoom is applied to expand larger size images.
+            Then, the further processes are no needed to be updated.
             """
             (X_train, y_train), (X_test, y_test) = mnist.load_data()
             X_train, X_test = X_train[:, ::2, ::2], X_test[:, ::2, ::2]
@@ -560,4 +704,26 @@ class CNN2_HOLO(CNN_HOLO):
         self.Data = (X_train_holo, y_train), (X_test_holo, y_test)
         self.Holo_complex = self.Data
         self.complex_flag = True
-       
+
+
+def padding_zeros(X_train, new_shape=(28 * 2, 28 * 2)):
+    mx, my = X_train.shape[1:]
+    # mx and my should be even numbers
+    assert (mx // 2 * 2 == mx and my // 2 * 2 == my)
+    mx2, my2 = mx // 2, my // 2
+
+    white_board = np.zeros(new_shape, dtype=X_train.dtype)
+    XL, YL = white_board.shape
+    # XL and YL should be larger than mx and my, respectively
+    assert (XL >= mx and YL >= my)
+    # XL and YL should be even numbers
+    assert (XL // 2 * 2 == XL and YL // 2 * 2 == YL)
+    XL2, YL2 = XL // 2, YL // 2
+
+    board_l = []
+    for X_tr in X_train:
+        board = white_board.copy()
+        board[XL2 - mx2:XL2 + mx2, YL2 - my2:YL2 + my2] += X_tr
+        board_l.append(board)
+
+    return np.array(board_l)
