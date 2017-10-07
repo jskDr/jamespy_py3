@@ -1,16 +1,13 @@
-# from sklearn import model_selection, metrics
-# from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-# import matplotlib.pyplot as plt
 from keras import backend as K
-# from keras.utils import np_utils
 from keras.models import Model
 from keras.layers import Dense, GlobalAveragePooling2D, Dropout, BatchNormalization, Activation
-from keras.applications.vgg16 import VGG16  # preprocess_input
-from keras.applications.resnet50 import ResNet50
+from keras.applications.imagenet_utils import preprocess_input
+from keras.applications import VGG16
+from keras.applications import VGG19
 
 from medic import dl
-# import kkeras
+import kgrid
 
 
 class CNN_nodropout(dl.CNN):
@@ -51,12 +48,16 @@ class CNN_nodropout(dl.CNN):
 
 class CNN(dl.CNN):
     def __init__(model, input_shape, nb_classes,
-                 n_dense=128, p_dropout=0.5,
+                 n_dense=128, p_dropout=0.5, BN_flag=False,
                  PretrainedModel=VGG16):
+        """
+        If BN_flag is True, BN is used instaed of Dropout
+        """
         model.in_shape = input_shape
         model.n_dense = n_dense
         model.p_dropout = p_dropout
         model.PretrainedModel = PretrainedModel
+        model.BN_flag = BN_flag
         super().__init__(nb_classes)
 
     def build_model(model):
@@ -67,7 +68,8 @@ class CNN(dl.CNN):
 
         # base_model = VGG16(weights='imagenet', include_top=False)
 
-        base_model = PretrainedModel(include_top=False, input_shape=input_shape)
+        base_model = PretrainedModel(
+            include_top=False, input_shape=input_shape)
 
         x = base_model.input
         h = base_model.output
@@ -92,13 +94,19 @@ class CNN(dl.CNN):
     def topmodel(model, h):
         '''
         Define topmodel
+        if BN_Flag is True, BN is used instead of Dropout
         '''
+        BN_flag = model.BN_flag
+
         n_dense = model.n_dense
         p_dropout = model.p_dropout
 
         h = GlobalAveragePooling2D()(h)
         h = Dense(n_dense, activation='relu')(h)
-        h = Dropout(p_dropout)(h)
+        if BN_flag:
+            h = BatchNormalization()(h)
+        else:
+            h = Dropout(p_dropout)(h)
         return h
 
 
@@ -159,6 +167,7 @@ class DataSet(dl.DataSet):
                         X = np.concatenate([X, X, X], axis=3)
                     input_shape = (img_rows, img_cols, n_channels)
 
+            X = preprocess_input(X)
             self.X = X
             self.input_shape = input_shape
             # self.img_info = {'channels': n_channels,
@@ -177,39 +186,97 @@ class Machine_nodropout(dl.Machine):
 
 class Machine(dl.Machine):
     def __init__(self, X, y, nb_classes=2,
-                 n_dense=128, p_dropout=0.5,
-                 PretrainedModel=VGG16):
+                 n_dense=128, p_dropout=0.5, BN_flag=False,
+                 PretrainedModel=VGG16, fig=True):
         """
         scaling becomes False for DataSet
         """
 
         data = DataSet(X, y, nb_classes, n_channels=3, scaling=False)
         # model = CNN(data.input_shape, nb_classes)
-        model = CNN(data.input_shape, nb_classes,
-                    n_dense=n_dense, p_dropout=p_dropout,
-                    PretrainedModel=VGG16)
 
         self.data = data
-        self.model = model
-        
-        
+        self.nb_classes = nb_classes
+        self.n_dense = n_dense
+        self.p_dropout = p_dropout
+        self.BN_flag = BN_flag
+        self.PretrainedModel = PretrainedModel
+        self.set_model()
+
+        self.fig = fig
+
+    def set_model(self):
+        data = self.data
+        nb_classes = self.nb_classes
+        n_dense = self.n_dense
+        p_dropout = self.p_dropout
+        BN_flag = self.BN_flag
+        PretrainedModel = self.PretrainedModel
+
+        self.model = CNN(data.input_shape, nb_classes,
+                         n_dense=n_dense, p_dropout=p_dropout, BN_flag=BN_flag,
+                         PretrainedModel=PretrainedModel)
+
+    def get_features(self):
+        data = self.data
+        PretrainedModel = self.PretrainedModel
+        features = get_features_pretrained(data.X, PretrainedModel=PretrainedModel)
+        return features
+
+    def gs_SVC(self):
+        y = self.data.y
+        features = self.get_features()
+        features1d = features.reshape(features.shape[0], -1)
+        gs = kgrid.gs_SVC(features1d, y, params={'C':(1, 10, 100), 'gamma': (1e-1, 1e-2, 1e-3)})
+        print("Best score (r2):", gs.best_score_)
+        print("Best param:", gs.best_params_)
+        return gs
+
+
 class Machine_Generator(dl.Machine_Generator):
-    def __init__(self, X, y, nb_classes=2, steps_per_epoch=10, 
-                 n_dense=128, p_dropout=0.5, scaling=False,
-                 PretrainedModel=VGG16, fig=True):
+    def __init__(self, X, y, nb_classes=2, steps_per_epoch=10,
+                 n_dense=128, p_dropout=0.5, BN_flag=False,
+                 scaling=False,
+                 PretrainedModel=VGG16, fig=True,
+                 gen_param_dict=None):
         """
         scaling becomes False for DataSet
         """
 
         data = DataSet(X, y, nb_classes, n_channels=3, scaling=scaling)
         # model = CNN(data.input_shape, nb_classes)
-        model = CNN(data.input_shape, nb_classes,
-                    n_dense=n_dense, p_dropout=p_dropout,
-                    PretrainedModel=VGG16)
 
         self.data = data
-        self.model = model
-        
-        self.set_generator(steps_per_epoch)
-        
+        self.nb_classes = nb_classes
+        self.n_dense = n_dense
+        self.p_dropout = p_dropout
+        self.BN_flag = BN_flag
+        self.PretrainedModel = PretrainedModel
+        self.set_model()
+
+        self.set_generator(steps_per_epoch, gen_param_dict=gen_param_dict)
         self.fig = fig
+
+    def set_model(self):
+        data = self.data
+        nb_classes = self.nb_classes
+        n_dense = self.n_dense
+        p_dropout = self.p_dropout
+        BN_flag = self.BN_flag
+        PretrainedModel = self.PretrainedModel
+
+        self.model = CNN(data.input_shape, nb_classes,
+                         n_dense=n_dense, p_dropout=p_dropout, BN_flag=BN_flag,
+                         PretrainedModel=PretrainedModel)
+
+
+def get_features_pretrained(X_org, PretrainedModel=VGG19):
+    """
+    get features by pre-trained networks
+    :param Pretrained: VGG19 is default
+    :return: features
+    """
+    X = preprocess_input(X_org)
+    model = PretrainedModel(weights='imagenet', include_top=False, input_shape=X.shape[1:])
+    features = model.predict(X)
+    return features

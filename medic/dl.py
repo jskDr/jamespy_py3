@@ -2,6 +2,7 @@ from sklearn import model_selection, metrics
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 import keras
 from keras import backend as K
@@ -10,7 +11,13 @@ from keras.models import Model
 from keras.layers import Input, Conv2D, BatchNormalization, \
     Activation, MaxPooling2D, Flatten, Dense, Dropout
 from keras.preprocessing.image import ImageDataGenerator
+
 import kkeras
+from keraspp import sfile
+
+
+def rgb_to_gray(X):
+    return 0.2989 * X[..., 0] + 0.5870 * X[..., 1] + 0.1140 * X[..., 2]
 
 
 class CNN(Model):
@@ -58,7 +65,8 @@ class CNN(Model):
         model.x, model.y = x, y
 
     def compile(model):
-        Model.compile(model, loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
+        Model.compile(model, loss='categorical_crossentropy',
+                      optimizer='adadelta', metrics=['accuracy'])
 
 
 class CNN_LENET(CNN):
@@ -144,7 +152,8 @@ class Data():
             input_shape = (img_rows, img_cols, 1)
 
         # the data, shuffled and split between train and test sets
-        X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2, random_state=0)
+        X_train, X_test, y_train, y_test = model_selection.train_test_split(
+            X, y, test_size=0.2, random_state=0)
 
         X_train = X_train.astype('float32')
         X_test = X_test.astype('float32')
@@ -167,14 +176,19 @@ class Data():
 class DataSet():
     def __init__(self, X, y, nb_classes, scaling=True, test_size=0.2, random_state=0):
         """
-        X is originally vector. Hence, it will be transformed to 2D images with a channel (i.e, 3D).
+        X is originally vector.
+        Hence, it will be transformed to 2D images with a channel (i.e, 3D).
         """
         self.X = X
-        self.add_channels()
+        self.y = y
+        self.nb_classes = nb_classes
 
+        self.add_channels()
         X = self.X
+
         # the data, shuffled and split between train and test sets
-        X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2, random_state=random_state)
+        X_train, X_test, y_train, y_test = model_selection.train_test_split(
+            X, y, test_size=0.2, random_state=random_state)
 
         print(X_train.shape, y_train.shape)
 
@@ -203,22 +217,53 @@ class DataSet():
         self.y_train, self.y_test = y_train, y_test
         # self.input_shape = input_shape
 
+        # KFold is not stated yet
+        # self.kfold_state = 'Lock'
+
     def add_channels(self):
         X = self.X
 
-        N, img_rows, img_cols = X.shape
+        if len(X.shape) == 3:
+            N, img_rows, img_cols = X.shape
 
-        if K.image_dim_ordering() == 'th':
-            X = X.reshape(X.shape[0], 1, img_rows, img_cols)
-            input_shape = (1, img_rows, img_cols)
+            if K.image_dim_ordering() == 'th':
+                X = X.reshape(X.shape[0], 1, img_rows, img_cols)
+                input_shape = (1, img_rows, img_cols)
+            else:
+                X = X.reshape(X.shape[0], img_rows, img_cols, 1)
+                input_shape = (img_rows, img_cols, 1)
         else:
-            X = X.reshape(X.shape[0], img_rows, img_cols, 1)
-            input_shape = (img_rows, img_cols, 1)
+            input_shape = X.shape[1:]  # channel is already included.
 
         self.X = X
         self.input_shape = input_shape
-        
-        
+
+    def init_kfold(self, cv=5):
+        self.kfold_kf = model_selection.KFold(n_splits=cv, shuffle=True)
+
+    def iter_kfold(self):
+        kf = self.kfold_kf
+        X = self.X
+        y = self.y
+        nb_classes = self.nb_classes
+
+        for cv_i, (train_index, test_index) in enumerate(kf.split(X)):
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+
+            Y_train = np_utils.to_categorical(y_train, nb_classes)
+            Y_test = np_utils.to_categorical(y_test, nb_classes)
+
+            self.X_train, self.X_test = X_train, X_test
+            self.Y_train, self.Y_test = Y_train, Y_test
+            self.y_train, self.y_test = y_train, y_test
+
+            print('Effective #Classes for train, test',
+                  set(y_train), set(y_test))
+
+            yield cv_i
+
+
 class Machine():
     def __init__(self, X, y, Lx, Ly, nb_classes=2, fig=True):
 
@@ -228,8 +273,8 @@ class Machine():
 
         self.data = data
         self.model = model
-        self.fig = fig 
-        
+        self.fig = fig
+
     def fit(self, nb_epoch=10, batch_size=128, verbose=1):
         data = self.data
         model = self.model
@@ -244,7 +289,6 @@ class Machine():
         fig = self.fig
 
         history = self.fit(nb_epoch=nb_epoch, batch_size=batch_size, verbose=verbose)
-        model.save_weights('dl_model.h5') 
 
         score = model.evaluate(data.X_test, data.Y_test, verbose=0)
 
@@ -256,6 +300,12 @@ class Machine():
         print('Test score:', score[0])
         print('Test accuracy:', score[1])
 
+        # Save results
+        foldname = sfile.makenewfold(prefix='output_', type='datetime')
+        kkeras.save_history_history('history_history.npy', history.history, fold=foldname)
+        model.save_weights(os.path.join(foldname, 'dl_model.h5'))
+        print('Output results are saved in', foldname)
+
         if fig:
             plt.figure(figsize=(12, 4))
             plt.subplot(1, 2, 1)
@@ -263,41 +313,65 @@ class Machine():
             plt.subplot(1, 2, 2)
             kkeras.plot_loss(history)
             plt.show()
-        
+
         self.history = history
+
+        return foldname
 
 
 class Machine_cnn_lenet(Machine):
     def __init__(self, X, y, nb_classes=2, fig=True):
 
         data = DataSet(X, y, nb_classes)
-        model = cnn_lenet(nb_classes=nb_classes, in_shape=data.input_shape)
 
+        self.nb_classes = nb_classes
         self.data = data
-        self.model = model
         self.fig = fig
+        self.set_model()
+
+    def set_model(self):
+        nb_classes = self.nb_classes
+        data = self.data
+        self.model = cnn_lenet(nb_classes=nb_classes, in_shape=data.input_shape)
+
+    def run_cv(self, nb_epoch=10, batch_size=128, verbose=1, cv=5):
+        """
+        cv is K of KFold crossvalidation
+        """
+        self.data.init_kfold(cv=cv)
+        for cv_i in self.data.iter_kfold():
+            print('CV#', cv_i)
+            self.set_model()
+            self.run(nb_epoch=nb_epoch, batch_size=batch_size, verbose=verbose)
 
 
 class Machine_Generator(Machine_cnn_lenet):
-    def __init__(self, X, y, nb_classes=2, steps_per_epoch=10, fig=True):
+    def __init__(self, X, y, nb_classes=2, steps_per_epoch=10, fig=True,
+                 gen_param_dict=None):
         super().__init__(X, y, nb_classes=nb_classes, fig=fig)
-        self.set_generator(steps_per_epoch)
-        
-    def set_generator(self, steps_per_epoch=10):
-        self.generator = ImageDataGenerator()
+        self.set_generator(steps_per_epoch=steps_per_epoch, gen_param_dict=gen_param_dict)
+
+    def set_generator(self, steps_per_epoch=10, gen_param_dict=None):
+        if gen_param_dict is not None:
+            self.generator = ImageDataGenerator(**gen_param_dict)
+        else:
+            self.generator = ImageDataGenerator()
+
+        print(self.data.X_train.shape)
+
         self.generator.fit(self.data.X_train, seed=0)
         self.steps_per_epoch = steps_per_epoch
-        
+
     def fit(self, nb_epoch=10, batch_size=64, verbose=1):
         model = self.model
         data = self.data
         generator = self.generator
         steps_per_epoch = self.steps_per_epoch
-        
-        history = model.fit_generator(generator.flow(data.X_train, data.Y_train, batch_size=batch_size), 
-                    epochs=nb_epoch, steps_per_epoch=steps_per_epoch,
-                    validation_data=(data.X_test, data.Y_test))  
-        
+
+        history = model.fit_generator(generator.flow(data.X_train, data.Y_train, batch_size=batch_size),
+                                      epochs=nb_epoch, steps_per_epoch=steps_per_epoch,
+                                      validation_data=(data.X_test, data.Y_test))
+
         return history
 
 

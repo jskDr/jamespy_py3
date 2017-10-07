@@ -3,7 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import os 
+import os
 # np.random.seed(1337)  # for reproducibility
 
 from keras.models import Sequential
@@ -19,33 +19,37 @@ import kutil
 
 def save_history_history(fname, history_history, fold=''):
     np.save(os.path.join(fold, fname), history_history)
-    
+
+
 def load_history_history(fname, fold=''):
     history_history = np.load(os.path.join(fold, fname)).item(0)
     return history_history
 
-def plot_acc(history):
+
+def plot_acc(history, title=None):
     # summarize history for accuracy
     if not isinstance(history, dict):
         history = history.history
 
     plt.plot(history['acc'])
     plt.plot(history['val_acc'])
-    plt.title('model accuracy')
+    if title is not None:
+        plt.title(title)
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc=0)
     # plt.show()
 
 
-def plot_loss(history):
+def plot_loss(history, title=None):
     # summarize history for loss
     if not isinstance(history, dict):
         history = history.history
 
     plt.plot(history['loss'])
     plt.plot(history['val_loss'])
-    plt.title('model loss')
+    if title is not None:
+        plt.title(title)
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc=0)
@@ -239,7 +243,7 @@ class _CNNC_Name_r0(CNNC):
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
         # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
+        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
         model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
                                 border_mode='same', input_shape=(l[0], 1), name=self.c_name))
         model.add(Flatten())
@@ -291,7 +295,7 @@ class CNNC_Name(CNNC):
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
         # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
+        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
         model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
                                 border_mode='same', input_shape=(l[0], 1), name=self.c_name))
         model.add(MaxPooling1D(mp))
@@ -343,7 +347,7 @@ class CNNC_Name_ConvOut(CNNC):
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
         # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
+        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
         model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
                                 border_mode='same', input_shape=(l[0], 1), name=self.c_name))
         # model.add(Activation('relu'))
@@ -411,7 +415,7 @@ class CNNC_Name_Border(CNNC):
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
         # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #	border_mode='same', input_shape=(1, l[0]), name = 'conv'))
+        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
         model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
                                 border_mode=border_mode, input_shape=(l[0], 1), name=self.c_name))
         # model.add(Activation('relu'))
@@ -494,8 +498,8 @@ class MLPR():  # Regression
         """
         model = self.modeling(l=l)
         # model.compile(loss='categorical_crossentropy',
-        #			  optimizer=RMSprop(),
-        #			  metrics=['accuracy'])
+        #             optimizer=RMSprop(),
+        #             metrics=['accuracy'])
         # , metrics=['accuracy'])
         model.compile(loss='mean_squared_error', optimizer='adam')
         self.model = model
@@ -532,7 +536,7 @@ class MLPR():  # Regression
         model = self.model
 
         # if nb_classes is None:
-        #	nb_classes = max( set( y_train)) + 1
+        #   nb_classes = max( set( y_train)) + 1
 
         #Y_train = np_utils.to_categorical(y_train, nb_classes)
         #Y_val = np_utils.to_categorical(y_val, nb_classes)

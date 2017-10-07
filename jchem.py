@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
+from scipy import stats
 
 # This is James Sungjin Kim's library
 import jutil
@@ -898,6 +899,7 @@ def _estimate_accuracy_r0( yv, yv_ann, disp = False):
 
     return r_sqr[0,0], RMSE[0,0]
 
+
 def estimate_accuracy( yv, yv_ann, disp = False):
     """
     The two column matrix is compared in this function and 
@@ -920,6 +922,11 @@ def estimate_accuracy( yv, yv_ann, disp = False):
 
     if disp:
         print("r_sqr = {0:.3e}, RMSE = {1:.3e}, AAE = {2:.3e}".format( r_sqr[0,0], RMSE[0,0], aae))
+        yv_a = np.array(yv).reshape(-1)
+        yv_ann_a = np.array(yv_ann).reshape(-1)
+        pr, _ = stats.pearsonr(yv_a, yv_ann_a)
+        #pr, _ = stats.pearsonr(yv, yv_ann)
+        print("Pearson R = {:.3e}".format(pr))
 
         #print "len(e) = ", len(e)
         #print "se = ", se

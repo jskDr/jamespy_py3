@@ -1402,3 +1402,18 @@ class GridSVRPrecomp():
         """
         r2_df = self.r2_df
         return get_r2_mean_std(r2_df) 
+
+
+def avg_cv_SVC(X, y, scoring='accuracy', n_jobs=1): # squared_hinge
+    SVC = svm.SVC 
+    KFold = model_selection.KFold
+    cross_val_score = model_selection.cross_val_score
+    
+    acc_a_l = []
+    for ii in range(10):
+        svc = SVC(C=1, gamma=0.001)
+        cv = KFold(n_splits=5, shuffle=True)
+        acc_a = cross_val_score(svc, X, y, cv=cv, n_jobs=n_jobs, scoring=scoring)
+        acc_a_l.append(acc_a)
+    print('Mean, STD are', np.mean(acc_a_l), np.std(acc_a_l))
+    return acc_a_l
