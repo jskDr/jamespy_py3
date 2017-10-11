@@ -69,6 +69,7 @@ class CNN(dl.CNN):
         # base_model = VGG16(weights='imagenet', include_top=False)
 
         base_model = PretrainedModel(
+            weights='imagenet',
             include_top=False, input_shape=input_shape)
 
         x = base_model.input
@@ -270,13 +271,14 @@ class Machine_Generator(dl.Machine_Generator):
                          PretrainedModel=PretrainedModel)
 
 
-def get_features_pretrained(X_org, PretrainedModel=VGG19):
+def get_features_pretrained(X, PretrainedModel=VGG19, preprocess_input=preprocess_input):
     """
     get features by pre-trained networks
     :param Pretrained: VGG19 is default
     :return: features
     """
-    X = preprocess_input(X_org)
+    if preprocess_input is not None:
+        X = preprocess_input(X)
     model = PretrainedModel(weights='imagenet', include_top=False, input_shape=X.shape[1:])
     features = model.predict(X)
     return features
