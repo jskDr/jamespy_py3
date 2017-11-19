@@ -134,8 +134,10 @@ class CNN_BN(CNN):
 
 class DataSet(dl.DataSet):
     def __init__(self, X, y, nb_classes, n_channels=3, scaling=True,
-                 test_size=0.2, random_state=0):
+                 test_size=0.2, random_state=0,
+                 preprocessing_flag=False):
         self.n_channels = n_channels
+        self.preprocessing_flag = preprocessing_flag
         super().__init__(X, y, nb_classes, scaling=scaling,
                          test_size=test_size, random_state=random_state)
 
@@ -168,7 +170,8 @@ class DataSet(dl.DataSet):
                         X = np.concatenate([X, X, X], axis=3)
                     input_shape = (img_rows, img_cols, n_channels)
 
-            X = preprocess_input(X)
+            if self.preprocessing_flag:
+                X = preprocess_input(X)
             self.X = X
             self.input_shape = input_shape
             # self.img_info = {'channels': n_channels,
@@ -188,12 +191,15 @@ class Machine_nodropout(dl.Machine):
 class Machine(dl.Machine):
     def __init__(self, X, y, nb_classes=2,
                  n_dense=128, p_dropout=0.5, BN_flag=False,
-                 PretrainedModel=VGG16, fig=True):
+                 PretrainedModel=VGG16, 
+                 preprocessing_flag=True,
+                 fig=True):
         """
         scaling becomes False for DataSet
         """
 
-        data = DataSet(X, y, nb_classes, n_channels=3, scaling=False)
+        data = DataSet(X, y, nb_classes, n_channels=3, scaling=False, 
+                       preprocessing_flag=preprocessing_flag)
         # model = CNN(data.input_shape, nb_classes)
 
         self.data = data
