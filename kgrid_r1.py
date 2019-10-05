@@ -784,7 +784,7 @@ def cv_SVR( xM, yV, svr_params, n_splits = 5, n_jobs = -1, grid_std = None, grap
 
     clf = svm.SVR( **svr_params)
     kf_n_c = model_selection.KFold( n_splits=n_splits, shuffle=shuffle)
-    kf_n = kf_n_c.split( xM)
+    kf_n = kf5_ext_c.split( xM)
     yV_pred = model_selection.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
 
     if graph:
@@ -793,9 +793,9 @@ def cv_SVR( xM, yV, svr_params, n_splits = 5, n_jobs = -1, grid_std = None, grap
 
     return yV_pred
 
-def gs_SVC( X, y, params, n_splits = 5, **kwargs):
+def gs_SVC( X, y, params, n_splits = 5):
     print("Use gs_param for the more general implementation!")
-    return gs_param( svm.SVC(), X, y, params, n_splits=n_splits, **kwargs)
+    return gs_param( svm.SVC(), X, y, params, n_splits=n_splits)
 
 def gs_param( model, X, y, param_grid, n_splits=5, shuffle=True, n_jobs=-1, graph=False):
     """

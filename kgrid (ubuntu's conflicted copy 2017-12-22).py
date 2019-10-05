@@ -784,7 +784,7 @@ def cv_SVR( xM, yV, svr_params, n_splits = 5, n_jobs = -1, grid_std = None, grap
 
     clf = svm.SVR( **svr_params)
     kf_n_c = model_selection.KFold( n_splits=n_splits, shuffle=shuffle)
-    kf_n = kf_n_c.split( xM)
+    kf_n = kf5_ext_c.split( xM)
     yV_pred = model_selection.cross_val_predict( clf, xM, yV, cv = kf_n, n_jobs = n_jobs)
 
     if graph:
@@ -1417,14 +1417,3 @@ def avg_cv_SVC(X, y, scoring='accuracy', n_jobs=1): # squared_hinge
         acc_a_l.append(acc_a)
     print('Mean, STD are', np.mean(acc_a_l), np.std(acc_a_l))
     return acc_a_l
-
-
-def prt_gs_scores(gs):
-    amax = np.argmax(gs.cv_results_['mean_test_score'])
-    sc_amax = []
-    for k in range(5):
-        sc_amax.append(gs.cv_results_['split{}_test_score'.format(k)][amax])
-
-    prt = ", ".join(["{:.3}".format(sc) for sc in sc_amax])
-    print(np.mean(sc_amax), ": average of", prt)
-    return sc_amax

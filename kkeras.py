@@ -6,15 +6,20 @@ import matplotlib.pyplot as plt
 import os
 # np.random.seed(1337)  # for reproducibility
 
+from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, \
-    MaxPooling1D, Convolution1D, Flatten
+    MaxPooling1D, Conv1D, Flatten
 from keras.optimizers import RMSprop  # ,SGD, Adam,
 from keras.utils import np_utils
 from keras import callbacks
 from keras.regularizers import l2
 
 import kutil
+
+
+def categorical_probas_to_classes(p):
+    return np.argmax(p, axis=1)
 
 
 def save_history_history(fname, history_history, fold=''):
@@ -123,7 +128,7 @@ class MLPC():
 
         X_train, X_val = self.X_reshape(X_train, X_val)
         history = model.fit(X_train, Y_train,
-                            batch_size=batch_size, nb_epoch=nb_epoch,
+                            batch_size=batch_size, epochs=nb_epoch,
                             verbose=verbose, validation_data=(X_val, Y_val), callbacks=[earlyStopping])
 
         self.nb_classes = nb_classes
@@ -159,7 +164,8 @@ class MLPC():
 
         X_test = self.X_reshape(X_test)
         Y_pred = model.predict(X_test, verbose=0)
-        y_pred = np_utils.categorical_probas_to_classes(Y_pred)
+        # y_pred = np_utils.categorical_probas_to_classes(Y_pred)
+        y_pred = categorical_probas_to_classes(Y_pred)
 
         return y_pred
 
@@ -192,8 +198,8 @@ class CNNC(MLPC):
 
         # Convolution
         # print( "n_cv_flt, n_cv_ln, cv_activation", n_cv_flt, n_cv_ln, cv_activation)
-        model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
-                                border_mode='same', input_shape=(l[0], 1)))
+        model.add(Conv1D(n_cv_flt, n_cv_ln, activation=cv_activation,
+                         padding='same', input_shape=(l[0], 1)))
         model.add(MaxPooling1D(mp))
         model.add(Flatten())
         model.add(Dense(l[1]))
@@ -242,10 +248,8 @@ class _CNNC_Name_r0(CNNC):
         # Convolution
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
-        # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
-        model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
-                                border_mode='same', input_shape=(l[0], 1), name=self.c_name))
+        model.add(Conv1D(n_cv_flt, n_cv_ln, activation=cv_activation,
+                         padding='same', input_shape=(l[0], 1), name=self.c_name))
         model.add(Flatten())
         model.add(Dense(l[1]))
 
@@ -294,10 +298,8 @@ class CNNC_Name(CNNC):
         # Convolution
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
-        # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
-        model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
-                                border_mode='same', input_shape=(l[0], 1), name=self.c_name))
+        model.add(Conv1D(n_cv_flt, n_cv_ln, activation=cv_activation,
+                         padding='same', input_shape=(l[0], 1), name=self.c_name))
         model.add(MaxPooling1D(mp))
         model.add(Flatten())
         model.add(Dense(l[1]))
@@ -346,10 +348,8 @@ class CNNC_Name_ConvOut(CNNC):
         # Convolution
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
-        # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
-        model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
-                                border_mode='same', input_shape=(l[0], 1), name=self.c_name))
+        model.add(Conv1D(n_cv_flt, n_cv_ln, activation=cv_activation,
+                         padding='same', input_shape=(l[0], 1), name=self.c_name))
         # model.add(Activation('relu'))
         model.add(Flatten())
         model.add(Dense(l[1]))
@@ -414,10 +414,8 @@ class CNNC_Name_Border(CNNC):
         # Convolution
         print("n_cv_flt, n_cv_ln, cv_activation",
               n_cv_flt, n_cv_ln, cv_activation)
-        # model.add(Convolution1D( n_cv_flt, n_cv_ln, activation=cv_activation,
-        #   border_mode='same', input_shape=(1, l[0]), name = 'conv'))
-        model.add(Convolution1D(n_cv_flt, n_cv_ln, activation=cv_activation,
-                                border_mode=border_mode, input_shape=(l[0], 1), name=self.c_name))
+        model.add(Conv1D(n_cv_flt, n_cv_ln, activation=cv_activation,
+                         padding=border_mode, input_shape=(l[0], 1), name=self.c_name))
         # model.add(Activation('relu'))
         model.add(Flatten())
         model.add(Dense(l[1]))
@@ -547,7 +545,7 @@ class MLPR():  # Regression
 
         X_train, X_val = self.X_reshape(X_train, X_val)
         history = model.fit(X_train, Y_train,
-                            batch_size=batch_size, nb_epoch=nb_epoch,
+                            batch_size=batch_size, epochs=nb_epoch,
                             verbose=verbose, validation_data=(X_val, Y_val), callbacks=[earlyStopping])
 
         #self.nb_classes = nb_classes
@@ -608,3 +606,21 @@ class MLPR_N(MLPR):  # Regression with N layers
             model.add(Dense(n_w_l))
 
         return model
+
+
+def reinitWs(model):
+    session = K.get_session()
+    for layer in model.layers: 
+        for v in layer.__dict__:
+            v_arg = getattr(layer, v)
+            if hasattr(v_arg,'initializer'):
+                initializer_method = getattr(v_arg, 'initializer')
+                initializer_method.run(session=session)
+                print('reinitializing layer {}.{}'.format(layer.name, v))
+
+
+def gray2RGB(X):
+    img_rows, img_cols = X.shape[1:]
+    X = X.reshape(X.shape[0], img_rows, img_cols, 1)
+    X = np.concatenate([X, X, X], axis=3)
+    return X

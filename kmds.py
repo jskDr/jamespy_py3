@@ -34,6 +34,31 @@ def plot_embedding(X, y, title=None, digit=True):
         plt.title(title)
 
 
+def plot_embedding_tsne(X, y, title=None, digit=True):
+    x_min, x_max = np.min(X, 0), np.max(X, 0)
+    X = (X - x_min) / (x_max - x_min)
+
+    plt.figure(figsize=(7, 6))
+    plt.subplot(111)
+    if digit:
+        for i in range(X.shape[0]):
+            plt.text(X[i, 0], X[i, 1], str(y[i]),
+                     color=plt.cm.Set1((y[i] + 1) / 10.),
+                     fontdict={'weight': 'bold', 'size': 9})
+    else:
+        for i in range(X.shape[0]):
+            #plt.plot(X[i, 0], X[i, 1], 'o',
+            #         color=plt.cm.Set1((y[i]+1) / 10.), alpha=0.7)
+            plt.scatter(X[i, 0], X[i, 1], facecolors='none', linewidths=2,
+                        edgecolors=plt.cm.Set1((y[i]+1) / 10.))
+
+    plt.xticks([]), plt.yticks([])
+    plt.xlabel('tSNE-1')
+    plt.ylabel('tSNE-2')
+    if title is not None:
+        plt.title(title)
+
+
 def plot_sparse_random_projection(X, y, random_state=42):
     """
     Random 2D projection using a random unitary matrix
@@ -176,6 +201,22 @@ def plot_tSNE(X, y, random_state=0, digit=True,
     X_tsne = tsne.fit_transform(X)
 
     plot_embedding(X_tsne, y, "t-SNE embedding", digit=digit)
+    print("(time %.2fs)" % (time() - t0))
+
+
+def plot_tSNE_xy(X, y, random_state=0, digit=True,
+              n_components=2, perplexity=30.0, early_exaggeration=12,
+              init='pca'):
+    # ----------------------------------------------------------------------
+    # t-SNE embedding of the digits dataset
+    print("Computing t-SNE embedding")
+    tsne = manifold.TSNE(n_components=n_components, perplexity=perplexity,
+                         early_exaggeration=early_exaggeration,
+                         init=init, random_state=random_state)
+    t0 = time()
+    X_tsne = tsne.fit_transform(X)
+
+    plot_embedding_tsne(X_tsne, y, "t-SNE embedding", digit=digit)
     print("(time %.2fs)" % (time() - t0))
 
 

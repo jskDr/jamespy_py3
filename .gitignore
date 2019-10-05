@@ -1,4 +1,5 @@
 # Python complied files
+*.png
 *.so
 *.pyc
 *.o
@@ -6,3 +7,6 @@
 __pycache__/
 build/
 repository/
+ktorch/data/
+ktorch/out_*
+

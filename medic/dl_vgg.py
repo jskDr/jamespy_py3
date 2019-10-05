@@ -245,12 +245,13 @@ class Machine_Generator(dl.Machine_Generator):
                  n_dense=128, p_dropout=0.5, BN_flag=False,
                  scaling=False,
                  PretrainedModel=VGG16, fig=True,
-                 gen_param_dict=None):
+                 gen_param_dict=None,
+                 preprocessing_flag=False):
         """
         scaling becomes False for DataSet
         """
 
-        data = DataSet(X, y, nb_classes, n_channels=3, scaling=scaling)
+        data = DataSet(X, y, nb_classes, n_channels=3, scaling=scaling, preprocessing_flag=False)
         # model = CNN(data.input_shape, nb_classes)
 
         self.data = data

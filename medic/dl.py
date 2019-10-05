@@ -178,6 +178,9 @@ class DataSet():
         """
         X is originally vector.
         Hence, it will be transformed to 2D images with a channel (i.e, 3D).
+
+        Preprocessing: 0 ~ 255 --> around -128 ~ 128
+        Pretrained networks: ~128 ~ 128
         """
         self.X = X
         self.y = y
