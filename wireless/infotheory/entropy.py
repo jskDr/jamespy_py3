@@ -29,15 +29,16 @@ class SUM:
             return H
         else:
             return self
-      
+        
 def H(X):
     """
     Caculate entropy of descrete random variable X
     """
+    f = -X.p*log(X.p,2) # use log2 for bits
     if X.P is None:
-        return SUM(-X.p*log(X.p), X.p, X.P)
+        return SUM(f, X.p, X.P)
     else:
-        return SUM(-X.p*log(X.p), X.p, X.P).calc()
+        return SUM(f, X.p, X.P).calc().simplify()
 
 def test_010():
     print('Not defined X')
@@ -59,3 +60,11 @@ def test_020():
     pretty_print(diff(Hx))
     p = plot(diff(Hx,p,0,1))
     show(p)
+    
+def test_030():
+    print('Defined pdf of X = [1/2, 1/2]')
+    X = DRV([Rational('1/2'), Rational('1/2')])
+    Hx = H(X)
+
+    print('Entropy: H(X)')
+    pretty_print(Hx)
