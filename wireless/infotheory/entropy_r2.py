@@ -29,7 +29,7 @@ class SUM:
             return H
         else:
             return self
-      
+        
 def H(X):
     """
     Caculate entropy of descrete random variable X
@@ -40,22 +40,13 @@ def H(X):
         return SUM(-X.p*log(X.p), X.p, X.P).calc()
 
 def test_010():
-    print('Not defined X')
     X = DRV()
     print(H(X))
 
 def test_020():
-    print('Defined pdf of X = [p, 1-p]')
     p = var('p')
     X = DRV([p, 1-p])
     Hx = H(X)
-
-    print('Plot Entropy')
-    pretty_print(Hx)
     p = plot(Hx,p,0,1)
     show(p)
-    
-    print('Maximum point')
-    pretty_print(diff(Hx))
-    p = plot(diff(Hx,p,0,1))
-    show(p)
+    pretty_print(Hx)
