@@ -82,5 +82,3 @@ def test_entropy():
                title='Entropy of $X$ ~ $(p, 1-p)$, i.e., $H(p) = −𝑝log_2(𝑝)+(𝑝−1)log_2(−𝑝+1)$')
     show(img)
     pretty_print(h)
-    
-test_entropy()
