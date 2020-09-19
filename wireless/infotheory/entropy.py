@@ -72,13 +72,15 @@ def test_030():
 def entropy(p_list):
     h = 0
     for p in p_list:
-        h += -p*log(p)
+        h += -p*log(p,2)
     return h
 
 def test_entropy():
     var('p')
     h = entropy([p, 1-p])
     img = plot(h, h, 0, 1, axes_labels=[r'$p$', r'$H(p)$'], 
-               title='Entropy of $X$ ~ $(p, 1-p)$, i.e., $H(p) = −𝑝log(𝑝)+(𝑝−1)log(−𝑝+1)$')
+               title='Entropy of $X$ ~ $(p, 1-p)$, i.e., $H(p) = −𝑝log_2(𝑝)+(𝑝−1)log_2(−𝑝+1)$')
     show(img)
-    pretty_print(h)    
+    pretty_print(h)
+    
+test_entropy()
