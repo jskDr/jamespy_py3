@@ -75,10 +75,55 @@ def entropy(p_list):
         h += -p*log(p,2)
     return h
 
+def entropy_x_and_y(Px_and_y_2d_list):
+    h = 0
+    for Px_row_list in Px_and_y_2d_list:
+        for Px_and_y in Px_row_list:
+            p = Px_and_y
+            h += -p*log(p,2)
+    return h    
+
+def test_entropy_x_and_y():
+    h = entropy_x_and_y([[Rational('1/8'),Rational('3/4')],[Rational('1/4'),Rational('1/4')]])
+    pretty_print(h)
+
+    print('Simple case: H(X,Y)')
+    p = var('p')
+    h = entropy_x_and_y([[(1-p)/2, p/2], [p/2, (1-p)/2]])
+    img = plot(h, p, 0, 1)
+    show(img)
+
 def test_entropy():
-    var('p')
+    p = var('p')
     h = entropy([p, 1-p])
     img = plot(h, h, 0, 1, axes_labels=[r'$p$', r'$H(p)$'], 
                title='Entropy of $X$ ~ $(p, 1-p)$, i.e., $H(p) = −𝑝log_2(𝑝)+(𝑝−1)log_2(−𝑝+1)$')
     show(img)
     pretty_print(h)
+
+class InformationEntropyX:
+    def __init__(self, Px_list):
+        self.Px_list = Px_list
+    def Hx(self):
+        h = 0
+        for Px in self.Px_list:
+            h += -Px*log(Px,2)
+        return h
+
+def test_InformationEntropyX():
+    p = var('p')
+    h = InformationEntropyX([p, 1-p]).Hx()
+    img = plot(h, h, 0, 1, axes_labels=[r'$p$', r'$H(p)$'], 
+               title='Entropy of $X$ ~ $(p, 1-p)$, i.e., $H(p) = −𝑝log_2(𝑝)+(𝑝−1)log_2(−𝑝+1)$')
+    show(img)
+    pretty_print(h)
+
+class InformationEntropyXY:
+    def __init__(self, Py_given_x_list):
+        self.Px_list = Px_list
+    def Hx(self):
+        h = 0
+        for Px in self.Px_list:
+            h += -Px*log(Px,2)
+        return h
+
