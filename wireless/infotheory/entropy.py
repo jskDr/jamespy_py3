@@ -127,3 +127,49 @@ class InformationEntropyXY:
             h += -Px*log(Px,2)
         return h
 
+class InformationEntropyXY:
+    def __init__(self, P_Y_givenby_X):
+        self.P_Y_givenby_X = P_Y_givenby_X # X x Y
+        self.P_X = []
+        
+        if len(self.P_Y_givenby_X) == 2:
+            alpha = var('alpha')
+            pretty_print(alpha)
+            self.P_X.append(alpha)
+        else:
+            for i in range(len(self.P_Y_givenby_X) - 1):
+                p = var(f'alpha{i}')
+                pretty_print(p)
+                self.P_X.append(p) 
+        self.P_X.append(1-sum(self.P_X))
+        pretty_print(self.P_X)           
+        
+    def H_X(self):
+        return entropy(self.P_X)
+    
+    def H_Y(self):
+        N_Y = len(self.P_Y_givenby_X[0])
+        self.P_Y = [0] * N_Y
+        for px, P_Y_givenby_X_each_X in zip(self.P_X, self.P_Y_givenby_X):
+            self.P_Y = [py + p_ygx * px for py, p_ygx in zip(self.P_Y, P_Y_givenby_X_each_X)]
+        return entropy(self.P_Y)
+
+
+def test_InformationEntropyXY():
+    # e_xy = InformationEntropyXY([[1-p, p], [p, 1-p], [p, 1-p]]) #3
+    e_xy = InformationEntropyXY([[1-p, p], [p, 1-p]]) #2
+    h = e_xy.H_X()
+    pretty_print(h)
+    img = plot(h,alpha,0,1)
+    show(img)
+
+    h = e_xy.H_Y()
+    pretty_print(h)
+    plot3d(h,(p,0,1),(alpha,0,1))
+    show(img)
+    
+    print('Find the best point:')
+    dh = diff(h,alpha)
+    pretty_print(dh)
+    sol = solve(dh==0,alpha)
+    pretty_print(sol)
