@@ -278,15 +278,15 @@ def decode_n(y_array):
     else:
         y1 = y_array[0::2]
         y2 = y_array[1::2]    
-        # print(L, y1, y2)
+        print(L, y1, y2)
         
         l1 = f_neg_n(y1, y2)
         u_hard[:L/2], x_hard[:L/2] = decode_n(l1)
-        # print('[:L/2] ', l1, u_hard[:L/2], x_hard[:L/2])
+        print('[:L/2] ', l1, u_hard[:L/2], x_hard[:L/2])
     
         l2 = f_pos_n(y1, y2, x_hard[:L/2])
         u_hard[L/2:], x_hard[L/2:] = decode_n(l2)
-        # print('[L/2:] ', l2, u_hard[L/2:], x_hard[L/2:])
+        print('[L/2:] ', l2, u_hard[L/2:], x_hard[L/2:])
         
         x_hard[:L/2] = np.mod(x_hard[:L/2] + x_hard[L/2:], 2)
 
