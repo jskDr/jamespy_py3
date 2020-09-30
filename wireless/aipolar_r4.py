@@ -255,55 +255,11 @@ def encode_array_n(u_array):
     return x_array
 
 @nb.jit
-def f_neg_n(a, b):
-    return np.log((np.exp(a + b) + 1)/(np.exp(a)+np.exp(b)))
-
-@nb.jit
-def f_pos_n(a, b, u):
-    return (-1)**u*a + b
-
-@nb.jit
-def decode_n_r1(y_array):
-    y1 = y_array[0]
-    y2 = y_array[1]    
-    
-    u_hard = np.zeros(y_array.shape, dtype=nb.int_) #int) #nb.int_)
-
-    l1 = f_neg_n(y1, y2)
-    u_hard[0] = 0 if l1 > 0 else 1
-    l2 = f_pos_n(y1, y2, u_hard[0])
-    u_hard[1] = 0 if l2 > 0 else 1
-
-    return u_hard
-
-@nb.jit
-def decode_n(y_array):
-    y1 = y_array[0::2]
-    y2 = y_array[1::2]    
-    
-    u_hard = np.zeros(y_array.shape, dtype=nb.int_) #int) #nb.int_)
-
-    l1 = f_neg_n(y1, y2)
-    u_hard[0] = 0 if l1[0] > 0 else 1
-    
-    l2 = f_pos_n(y1, y2, u_hard[0])
-    u_hard[1] = 0 if l2[0] > 0 else 1
-
-    return u_hard
-
-@nb.jit
-def decode_array_n(y_array):
-    ud_array = np.zeros(y_array.shape, dtype=nb.int_) #nb.int_)
-    for i in range(len(y_array)):
-        ud_array[i] = decode_n(y_array[i])      
-    return ud_array
-
-@nb.jit
 def coding_array_all_awgn_n(u_array, SNRdB=10):
     e_array = np.zeros_like(u_array)
     x_array = encode_array_n(u_array)
     y_array = channel_numpy_awgn(x_array, SNRdB)  
-    ud_array = decode_array_n(y_array)
+    ud_array = decode_array(y_array)
     e_array = u_array - ud_array
     return e_array
 
@@ -317,6 +273,7 @@ class PolarCode:
         self.K_code = K_code 
 
     def plot(self, SNRdB_list, BER_list):
+
         plt.semilogy(SNRdB_list, BER_list)
         plt.grid()
         plt.xlabel('SNR(dB)')
@@ -324,18 +281,29 @@ class PolarCode:
         plt.title('Performance of Polar Code')
         plt.show()    
 
+    def run_ber(self, 
+        SNRdB=10, N_iter=1):
+        """
+        BER calculation machine
+        """
+        #u_array_unit = np.array([(1,1), (1,0), (0,1), (0,0)])
+        #u_array = np.tile(u_array_unit, (Ntile, 1))
+        u_array = np.random.randint(2, size=(N_iter, self.N_code))
+        e_array = coding_array_all_awgn_n(u_array, SNRdB=SNRdB)
+        BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
+
+        return BER
+
     def run(self, 
         SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        u_array = np.random.randint(2, size=(N_iter, self.N_code))
-        
+
         BER_list = []
         for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_n(u_array, SNRdB=SNRdB)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
+            BER = self.run_ber(SNRdB, N_iter)
             BER_list.append(BER)
 
         if flag_fig:
-            self.plot(SNRdB_list, BER_list)           
+            self.plot(SNRdB_list, BER_list)            
 
 
 if __name__ == '__main__':
