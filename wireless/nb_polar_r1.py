@@ -239,19 +239,20 @@ def encode_n(u):
     x = uBF(xn) where n = log(N), N=len(u), B is bit-reverse
     """
     x = np.copy(u)
-    if len(u) != 1:
+    L = len(u)
+    if L != 1:
         u1 = u[0::2]
         u2 = u[1::2]
         u1u2 = np.mod(u1 + u2, 2) 
-        x[0::2] = encode_n(u1u2)
-        x[1::2] = encode_n(u2)
+        x[:L/2] = encode_n(u1u2)
+        x[L/2:] = encode_n(u2)
     return x
 
 @nb.jit
 def encode_array_n(u_array):
     x_array = np.zeros_like(u_array)
     for i in range(len(u_array)):
-        x_array[i,0], x_array[i,1] = encode_n(u_array[i])        
+        x_array[i] = encode_n(u_array[i])        
     return x_array
 
 @nb.jit
@@ -263,39 +264,38 @@ def f_pos_n(a, b, u):
     return (-1)**u*a + b
 
 @nb.jit
-def decode_n_r1(y_array):
-    y1 = y_array[0]
-    y2 = y_array[1]    
-    
-    u_hard = np.zeros(y_array.shape, dtype=nb.int_) #int) #nb.int_)
-
-    l1 = f_neg_n(y1, y2)
-    u_hard[0] = 0 if l1 > 0 else 1
-    l2 = f_pos_n(y1, y2, u_hard[0])
-    u_hard[1] = 0 if l2 > 0 else 1
-
-    return u_hard
-
-@nb.jit
 def decode_n(y_array):
-    y1 = y_array[0::2]
-    y2 = y_array[1::2]    
+    """
+    u_hard: input hard decision
+    x_hard: output hard decision
+    """
+    u_hard = np.zeros(y_array.shape, dtype=nb.int_) 
+    x_hard = np.zeros(y_array.shape, dtype=nb.int_) 
+    L = len(y_array)
+    if L == 1:
+        u_hard[0] = 0 if y_array[0] > 0 else 1
+        x_hard[0] = u_hard[0]
+    else:
+        y1 = y_array[0::2]
+        y2 = y_array[1::2]    
+        # print(L, y1, y2)
+        
+        l1 = f_neg_n(y1, y2)
+        u_hard[:L/2], x_hard[:L/2] = decode_n(l1)
+        # print('[:L/2] ', l1, u_hard[:L/2], x_hard[:L/2])
     
-    u_hard = np.zeros(y_array.shape, dtype=nb.int_) #int) #nb.int_)
+        l2 = f_pos_n(y1, y2, x_hard[:L/2])
+        u_hard[L/2:], x_hard[L/2:] = decode_n(l2)
+         
+        x_hard[:L/2] = np.mod(x_hard[:L/2] + x_hard[L/2:], 2)
 
-    l1 = f_neg_n(y1, y2)
-    u_hard[0] = 0 if l1[0] > 0 else 1
-    
-    l2 = f_pos_n(y1, y2, u_hard[0])
-    u_hard[1] = 0 if l2[0] > 0 else 1
-
-    return u_hard
+    return u_hard, x_hard
 
 @nb.jit
 def decode_array_n(y_array):
     ud_array = np.zeros(y_array.shape, dtype=nb.int_) #nb.int_)
     for i in range(len(y_array)):
-        ud_array[i] = decode_n(y_array[i])      
+        ud_array[i], _ = decode_n(y_array[i])      
     return ud_array
 
 @nb.jit
@@ -335,7 +335,9 @@ class PolarCode:
             BER_list.append(BER)
 
         if flag_fig:
-            self.plot(SNRdB_list, BER_list)           
+            self.plot(SNRdB_list, BER_list)  
+
+        self.BER_list = BER_list         
 
 
 if __name__ == '__main__':
