@@ -55,6 +55,9 @@ class QAM_Code:
 
 
 def plot_loss_acc_l(loss_train_l, loss_test_l, acc_train_l, acc_test_l):
+    """
+    - 마지막에 plt.show()를 포함했다. 이를 통해 plot 결과가 중간에 나오도록 했다.
+    """
     plt.plot(loss_train_l, label='Loss@Train')
     plt.plot(loss_test_l, label='Loss@Test')
     plt.plot(acc_train_l, label='Acc@Train')
@@ -62,6 +65,7 @@ def plot_loss_acc_l(loss_train_l, loss_test_l, acc_train_l, acc_test_l):
     plt.xlabel('Episode')
     plt.ylabel('Loss/Acc')
     plt.legend(loc=0)
+    plt.show()
 
 def plot_map(model, N_bits):
     N_mod = 2 ** N_bits
