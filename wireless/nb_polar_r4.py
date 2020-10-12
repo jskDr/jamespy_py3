@@ -374,86 +374,26 @@ class PolarCode:
 
         self.BER_list = BER_list         
 
-# ====================================================================
-# Frozen을 고려하는 Polar Coding 시스템 
-# ====================================================================
+# Frozen bit를 고려한 폴라코딩 (frozen flag가 1이면 frozen이고 0이면 information bit임)
+# 인코딩시 Frozen bit flag를 고려해서 Frozen이 아닌 곳에만 입력을 넣어야 함
+# 디코딩시도 Frozen bit flag를 고려해서 Frozen bit는 디코딩 대신 0가 있었다고 가정해야 한다.
 @nb.jit
-def frozen_encode_n(uf, u, f):    
-    """
-    Input:
-    uf: 길이 N_code인 코딩 블럭
-    u: 길이 K_code인 정보 블럭
-    f: 길이 N_code인 비트가 frozen인지 아닌지를 나타내는 벡터
-    """
-    k = 0 
-    for n in range(len(uf)):
-        if f[n]:
-            uf[n] = 0
-        else: 
-            uf[n] = u[k]        
-            k += 1
-
-@nb.jit
-def frozen_encode_array_n(u_array, frozen_flag_n):    
-    N_iter = len(u_array)
-    N_code = len(frozen_flag_n)
-    uf_array = np.zeros(shape=(N_iter,N_code), dtype=nb.int_)    
-    for i in range(N_iter):
-            frozen_encode_n(uf_array[i], u_array[i], frozen_flag_n)
-    return uf_array  
-
-@nb.jit
-def frozen_decode_n(ud, ufd, f):    
-    """
-    Input:
-    ufd: 길이 N_code인 디코딩한 블럭
-    ud: 길이 K_code인 검출한 정보 블럭
-    f: 길이 N_code인 비트가 frozen인지 아닌지를 나타내는 벡터
-    """
-    k = 0 
-    for n in range(len(f)):
-        if f[n] == 0:
-            ud[k] = ufd[n]        
-            k += 1
-
-@nb.jit
-def frozen_decode_array_n(ufd_array, frozen_flag_n):    
-    N_iter = len(ufd_array)
-    N_code = len(frozen_flag_n)
-    K_code = N_code - np.sum(frozen_flag_n)
-    ud_array = np.zeros(shape=(N_iter,K_code), dtype=nb.int_)    
-    for i in range(N_iter):
-            frozen_decode_n(ud_array[i], ufd_array[i], frozen_flag_n)
-    return ud_array  
-
-@nb.jit
-def coding_array_all_awgn_frozen_n(u_array, frozen_flag_n, SNRdB=10):
+def coding_array_all_awgn_n(u_array, SNRdB=10):
     e_array = np.zeros_like(u_array)
-
-    # encode를 하기 전과 decode 끝난 후에 frozen처리를 포함하면 됨.
-    # u_array는 길이가 K_code인 벡터들의 모임이고, uf_array는 길이가 N_code인 벡터들의 모임이다.
-    uf_array = frozen_encode_array_n(u_array, frozen_flag_n) 
-
-    # encode_array_n()은 frozen 여부를 알 필요가 없음.
-    x_array = encode_array_n(uf_array)
+    x_array = encode_array_n(u_array)
     y_array = channel_numpy_awgn(x_array, SNRdB)  
-    ufd_array = decode_array_n(y_array) # frozen을 고려한 함수로 변경되어야 함!
-
-    ud_array = frozen_decode_array_n(ufd_array, frozen_flag_n)
-    
+    ud_array = decode_array_n(y_array)
     e_array = u_array - ud_array
     return e_array
 
-class PolarCodeFrozen:
-    def __init__(self, N_code=2, K_code=2, frozen_flag_n=np.zeros(2,dtype=int)):
+class PolarCode_Frozen:
+    def __init__(self, frozen_flag_n=np.zeros(2,dtype=int), N_code=2, K_code=2):
         """
-        N_code=4: Code block size
-        K_code=2: Information bit size
-        frozen_flag_n=[1,1,0,0]: 코드 블럭 안의 매 비트가 frozen인지 아닌지를 표시함. Frozen이면 1, 아니면 0임.
-            Frozen 아닌 비트들의 갯 수는 Code_K와 동일해야 함.
+        frozen_flag_n=np.zeros(2,dtype=int): Frozen인지 아닌지를 나타내는 flag임
+            길이는 N_code이고 1이면 Frozen으로 encoding과 decoding시 해당 위치의 비트를 0인 것으로 가정하게 됨.
+        N_code: Code block size
+        K_code: Information bit size
         """
-        assert N_code == len(frozen_flag_n)
-        assert N_code - K_code == np.sum(frozen_flag_n)
         self.N_code = N_code
         self.K_code = K_code 
         self.frozen_flag_n = frozen_flag_n
@@ -468,12 +408,12 @@ class PolarCodeFrozen:
 
     def run(self, 
         SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        # 정보 비트수느느 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
-        u_array = np.random.randint(2, size=(N_iter, self.K_code))
+        u_array = np.random.randint(2, size=(N_iter, self.N_code))
         
         BER_list = []
         for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_frozen_n(u_array, frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
+            e_array = coding_array_all_awgn_n_frozen(u_array, SNRdB=SNRdB, 
+                        frozen_flag_n=self.frozen_flag_n)
             BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
             BER_list.append(BER)
 
