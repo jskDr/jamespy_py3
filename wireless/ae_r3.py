@@ -22,7 +22,7 @@ class QAM_Code:
         - y는 onehot이 다시 복원된 index 값이 들어가야 한다. 반면, X는 onehot을 처리한 것이 들어가야 함.
         """
         N_messages = 2 ** Code_K
-        S = np.random.randint(N_messages, size=N_sample) 
+        S = np.random.randint(2, N_messages, size=N_sample) 
         S_onehot = tf.one_hot(S, N_messages, dtype='float32').numpy()
         print(S.shape, S_onehot.shape)
 

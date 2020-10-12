@@ -2,9 +2,6 @@ import numpy as np
 import numba as nb
 import matplotlib.pyplot as plt
 
-def calc_ber(e_array):
-    return np.mean(np.abs(e_array))
-
 # Imitate static variable for a python function using decorate and setattr
 def static_vars(**kwargs):
     '''
@@ -374,54 +371,8 @@ class PolarCode:
 
         self.BER_list = BER_list         
 
-# Frozen bit를 고려한 폴라코딩 (frozen flag가 1이면 frozen이고 0이면 information bit임)
-# 인코딩시 Frozen bit flag를 고려해서 Frozen이 아닌 곳에만 입력을 넣어야 함
-# 디코딩시도 Frozen bit flag를 고려해서 Frozen bit는 디코딩 대신 0가 있었다고 가정해야 한다.
-@nb.jit
-def coding_array_all_awgn_n(u_array, SNRdB=10):
-    e_array = np.zeros_like(u_array)
-    x_array = encode_array_n(u_array)
-    y_array = channel_numpy_awgn(x_array, SNRdB)  
-    ud_array = decode_array_n(y_array)
-    e_array = u_array - ud_array
-    return e_array
-
-class PolarCode_Frozen:
-    def __init__(self, frozen_flag_n=np.zeros(2,dtype=int), N_code=2, K_code=2):
-        """
-        frozen_flag_n=np.zeros(2,dtype=int): Frozen인지 아닌지를 나타내는 flag임
-            길이는 N_code이고 1이면 Frozen으로 encoding과 decoding시 해당 위치의 비트를 0인 것으로 가정하게 됨.
-        N_code: Code block size
-        K_code: Information bit size
-        """
-        self.N_code = N_code
-        self.K_code = K_code 
-        self.frozen_flag_n = frozen_flag_n
-
-    def plot(self, SNRdB_list, BER_list):
-        plt.semilogy(SNRdB_list, BER_list)
-        plt.grid()
-        plt.xlabel('SNR(dB)')
-        plt.ylabel('BER')
-        plt.title('Performance of Polar Code')
-        plt.show()    
-
-    def run(self, 
-        SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        u_array = np.random.randint(2, size=(N_iter, self.N_code))
-        
-        BER_list = []
-        for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_n_frozen(u_array, SNRdB=SNRdB, 
-                        frozen_flag_n=self.frozen_flag_n)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
-            BER_list.append(BER)
-
-        if flag_fig:
-            self.plot(SNRdB_list, BER_list)  
-
-        self.BER_list = BER_list         
-
+def calc_ber(e_array):
+    return np.mean(np.abs(e_array))
 
 if __name__ == '__main__':
     # main_run_coding_awgn()
