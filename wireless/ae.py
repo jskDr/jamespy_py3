@@ -180,7 +180,7 @@ def large_test(model, N_sample=10000):
     """
     noise_sig = model.noise_sig
     N_messages = model.N_messages
-    S = np.random.randint(2, N_messages, size=N_sample) 
+    S = np.random.randint(N_messages, size=N_sample) 
     S_onehot = tf.one_hot(S, N_messages, dtype='float32').numpy()
     test_dataset = tf.data.Dataset.from_tensor_slices((S_onehot, S))
     test_dataset = test_dataset.shuffle(buffer_size=5000).batch(1000)   
@@ -207,9 +207,9 @@ def test_snr_range(
     """
     BER_l = []
     for EbNo_dB in EbNo_dB_l:
-        trained_model = ae.ae_train_test(N_mod_bits=N_mod_bits,Code_K=Code_K,Code_N=Code_N,
+        trained_model = ae_train_test(N_mod_bits=N_mod_bits,Code_K=Code_K,Code_N=Code_N,
             N_sample=N_sample_train,N_episodes=N_episodes,EbNo_dB=EbNo_dB)   
-        BER = large_test(trained_model, N_sample=N_sample)
+        BER = large_test(trained_model, N_sample=N_sample_test)
         BER_l.append(BER)
         print(EbNo_dB, BER)    
 
