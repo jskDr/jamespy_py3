@@ -381,7 +381,7 @@ class PolarCode:
 # Frozen을 고려하는 Polar Coding 시스템 
 # ====================================================================
 @nb.jit
-def _decode_frozen_n(y_array, frozen_flag_n):
+def decode_frozen_n(y_array, frozen_flag_n):
     """
     u_hard: input hard decision
     x_hard: output hard decision
@@ -413,41 +413,6 @@ def _decode_frozen_n(y_array, frozen_flag_n):
         x_hard[1::2] = x_temp[L/2:]
 
     return u_hard, x_hard    
-
-
-@nb.jit
-def decode_frozen_n(y_array, frozen_flag_n):
-    """
-    u_hard: input hard decision
-    x_hard: output hard decision
-    """
-    u_hard = np.zeros(y_array.shape, dtype=nb.int_) 
-    x_hard = np.zeros(y_array.shape, dtype=nb.int_) 
-    x_temp = np.zeros(y_array.shape, dtype=nb.int_) 
-    L = len(y_array)
-    if L == 1:
-        u_hard[0] = 0 if y_array[0] > 0 else 1
-        if frozen_flag_n[0]:
-            x_hard[0] = 0
-        else:
-            x_hard[0] = u_hard[0]
-    else:
-        y1 = y_array[0::2]
-        y2 = y_array[1::2]    
-        # print(L, y1, y2)
-        
-        l1 = f_neg_n(y1, y2)
-        u_hard[:L/2], x_temp[:L/2] = decode_frozen_n(l1, frozen_flag_n[:L/2])
-        # print('[:L/2] ', l1, u_hard[:L/2], x_hard[:L/2])
-    
-        l2 = f_pos_n(y1, y2, x_temp[:L/2])
-        u_hard[L/2:], x_temp[L/2:] = decode_frozen_n(l2, frozen_flag_n[L/2:])
-         
-        x_temp[:L/2] = np.mod(x_temp[:L/2] + x_temp[L/2:], 2)
-        x_hard[0::2] = x_temp[:L/2]
-        x_hard[1::2] = x_temp[L/2:]
-
-    return u_hard, x_hard       
 
 @nb.jit
 def decode_frozen_array_n(y_array, frozen_flag_n):
@@ -563,29 +528,6 @@ class PolarCodeFrozen:
         print(SNRdB_list, BER_list)
 
         self.BER_list = BER_list         
-
-
-def polar_bsc(N_code=4, p=0.11, N_iter=1000):
-    """
-    (0,1)에 대한 원래 코드를 (1,-1)로 바꾸어서 p대신 2*p를 사용해 디자인했음.
-    Input:
-    p=0.11: 오류 확률을 넣는다. 그리고 p*100%의 심볼은 1로 오튜가 났다고 가정하고
-        0, 1에 상관없이 오류는 p만큼 모든 심볼에 들어가는 걸로 되어 있음. 
-    Comments:
-    udhat는 frozen bit에 대한 실제 데이터를 결정한 값이다. 이 값은 통상 BER 계산시에는 사용되지 않는다.
-    frozen bit로 설정해 오류 역전파가 없다는 가정으로 각 채널의 성능 평가를 위해 사용한다.
-    """
-    # 모든 비트를 frozen 시킴
-    f = np.ones(N_code, dtype=int)
-    biterrd = np.zeros(N_code)    
-    for i in range(N_iter):
-        # 정상 입력은 모두 0으로 가정함.
-        y = np.ones(N_code) - 2*p
-        y[np.random.rand(N_code)<p] = -1 + 2*p
-        ud_hat, x_hat = nb_polar.decode_frozen_n(y, f)
-        biterrd += ud_hat        
-    biterrd /= N_iter    
-    return biterrd
 
 
 if __name__ == '__main__':
