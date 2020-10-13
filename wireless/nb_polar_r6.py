@@ -521,8 +521,6 @@ class PolarCodeFrozen:
 
         if flag_fig:
             self.plot(SNRdB_list, BER_list)  
-        print("SNRdB_list, BER_list")
-        print(SNRdB_list, BER_list)
 
         self.BER_list = BER_list         
 

@@ -39,7 +39,7 @@ class QAM_Code:
 
 
 class AE(Layer):
-    def __init__(self, N_mod_bits=1, Code_N=2, Code_K=2, N_sample=1000, EbNo_dB=10, model_type='linear'):
+    def __init__(self, N_mod_bits=1, Code_N=2, Code_K=2, N_sample=1000, EbNo_dB=10):
         """
         - AE의 입력은 변조 차원에 상관없이 Code_K가 되어야 하고
           출력은 Code_N이 되어야 한다. 
@@ -67,53 +67,15 @@ class AE(Layer):
 
         self.set_data(N_sample, EbNo_dB)
 
-        self.init_model(model_type)
-
-    def init_model(self, model_type):
-        """
-        model_type이 linear이면 linear 방식의 뉴럴넷을 사용하고 입력과 출력은 자동으로 결정된다.
-        nolinear인 경우는 송신과 수신 뉴럴넷 모두 한 개의 추가 히든 계층을 사용하게 된다.
-        히든 계층의 노드 수는 출력과 동일하게 일단은 지정하고 추후에 BO등을 활용해 최적화할 예정이다.
-        """
-
-        if model_type == 'nonlinear': 
-            print('Set nonlinear model')
-            # the length of input is Code_K
-            if self.N_mod_bits == 1: # BPSK, 즉 IQ를 이용하지 않는 경우임.
-                # length of a code block / Modulation order
-                self.Encoder = Sequential([Dense(self.Code_N, activation='relu'), Dense(self.Code_N)])     
-            else: # IQ를 이용하는 경우임. 2개가 쌍이 되어서 나와야 함. 
-                # (I,Q) * length of a code block / Modulation order
-                assert 2*self.Code_N//self.N_mod_bits == 2*self.Code_N/self.N_mod_bits
-                ln_out = 2*self.Code_N/self.N_mod_bits
-                self.Encoder = Sequential([Dense(ln_out,activation='relu'), Dense(ln_out)]) 
-            self.Decoder = Sequential([Dense(self.N_messages, activation='relu'), Dense(self.N_messages)]) 
-        elif model_type == 'nonlinear_bn': # BatchNormalization()을 사용하는 경우임
-            print('Set nonlinear & batchnormalization model')
-            # the length of input is Code_K
-            if self.N_mod_bits == 1: # BPSK, 즉 IQ를 이용하지 않는 경우임.
-                # length of a code block / Modulation order
-                self.Encoder = Sequential([Dense(self.Code_N, activation='relu'), 
-                                BatchNormalization(), Dense(self.Code_N)])     
-            else: # IQ를 이용하는 경우임. 2개가 쌍이 되어서 나와야 함. 
-                # (I,Q) * length of a code block / Modulation order
-                assert 2*self.Code_N//self.N_mod_bits == 2*self.Code_N/self.N_mod_bits
-                ln_out = 2*self.Code_N/self.N_mod_bits
-                self.Encoder = Sequential([Dense(ln_out,activation='relu'), 
-                                BatchNormalization(), Dense(ln_out)]) 
-            self.Decoder = Sequential([Dense(self.N_messages, activation='relu'), 
-                            BatchNormalization(), Dense(self.N_messages)]) 
-        else: # model_type == 'linear'
-            print('Set linear model')
-            # the length of input is Code_K
-            if self.N_mod_bits == 1: # BPSK, 즉 IQ를 이용하지 않는 경우임.
-                # length of a code block / Modulation order
-                self.Encoder = Sequential([Dense(self.Code_N)])     
-            else: # IQ를 이용하는 경우임. 2개가 쌍이 되어서 나와야 함. 
-                # (I,Q) * length of a code block / Modulation order
-                assert 2*self.Code_N//self.N_mod_bits == 2*self.Code_N/self.N_mod_bits
-                self.Encoder = Sequential([Dense(2*self.Code_N/self.N_mod_bits)]) 
-            self.Decoder = Sequential([Dense(self.N_messages)]) 
+        # the length of input is Code_K
+        if N_mod_bits == 1: # BPSK, 즉 IQ를 이용하지 않는 경우임.
+            # length of a code block / Modulation order
+            self.Encoder = Sequential([Dense(Code_N)])     
+        else: # IQ를 이용하는 경우임. 2개가 쌍이 되어서 나와야 함. 
+            # (I,Q) * length of a code block / Modulation order
+            assert 2*Code_N//N_mod_bits == 2*Code_N/N_mod_bits
+            self.Encoder = Sequential([Dense(2*Code_N/N_mod_bits)]) 
+        self.Decoder = Sequential([Dense(self.N_messages)]) 
 
     def set_data(self, N_sample, EbNo_dB):
         Code_K = self.Code_K
@@ -153,11 +115,10 @@ def ae_train_test(
     Code_N=4,
     N_sample=1000,
     N_episodes=20,
-    EbNo_dB=10,
-    model_type='linear'):
+    EbNo_dB=10):
 
     # This is code rate
-    model = AE(N_mod_bits, Code_N, Code_K, N_sample, EbNo_dB, model_type)
+    model = AE(N_mod_bits, Code_N, Code_K, N_sample, EbNo_dB)
     # not softmax is used at the end of the network
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True) 
     accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
@@ -239,8 +200,7 @@ def test_snr_range(
         Code_K=2,Code_N=2,
         N_episodes=500,
         N_sample_train=2000,
-        N_sample_test=100000,
-        model_type='linear'):
+        N_sample_test=100000):
     """
     Inputs:
     EbNo_dB_l = range(10): 0 ~ 9까지 EbNo(dB)에 대해 테스트를 수행함.
@@ -248,7 +208,7 @@ def test_snr_range(
     BER_l = []
     for EbNo_dB in EbNo_dB_l:
         trained_model = ae_train_test(N_mod_bits=N_mod_bits,Code_K=Code_K,Code_N=Code_N,
-            N_sample=N_sample_train,N_episodes=N_episodes,EbNo_dB=EbNo_dB, model_type=model_type)   
+            N_sample=N_sample_train,N_episodes=N_episodes,EbNo_dB=EbNo_dB)   
         BER = large_test(trained_model, N_sample=N_sample_test)
         BER_l.append(BER)
         print(EbNo_dB, BER)    
@@ -260,19 +220,15 @@ def test_snr_range(
     plt.grid()
     plt.show()    
 
-    print('EbNo_dB_l, BER_l:')
-    print(EbNo_dB_l, BER_l)
-
 
 if __name__ == '__main__':
     trained_model = ae_train_test(
-        N_mod_bits=1,
-        Code_K=1,
-        Code_N=2,
-        N_sample=1000,
-        N_episodes=100,
-        EbNo_dB=5,
-        model_type='noninear_bn')  
+    N_mod_bits=2,
+    Code_K=2,
+    Code_N=4,
+    N_sample=1000,
+    N_episodes=100,
+    EbNo_dB=10)  
 
     BER = large_test(trained_model, N_sample=100000)
     print(BER)
