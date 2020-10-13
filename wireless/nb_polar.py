@@ -582,7 +582,7 @@ def polar_bsc(N_code=4, p=0.11, N_iter=1000):
         # 정상 입력은 모두 0으로 가정함.
         y = np.ones(N_code) - 2*p
         y[np.random.rand(N_code)<p] = -1 + 2*p
-        ud_hat, _ = nb_polar.decode_frozen_n(y, f)
+        ud_hat, _ = decode_frozen_n(y, f)
         biterrd += ud_hat        
     biterrd /= N_iter    
     return biterrd
