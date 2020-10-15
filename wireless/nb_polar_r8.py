@@ -414,6 +414,7 @@ def _decode_frozen_n(y_array, frozen_flag_n):
 
     return u_hard, x_hard    
 
+
 @nb.jit
 def decode_frozen_n(y_array, frozen_flag_n):
     """
@@ -446,8 +447,7 @@ def decode_frozen_n(y_array, frozen_flag_n):
         x_hard[0::2] = x_temp[:L/2]
         x_hard[1::2] = x_temp[L/2:]
 
-    return u_hard, x_hard  
-
+    return u_hard, x_hard       
 
 @nb.jit
 def decode_frozen_array_n(y_array, frozen_flag_n):
@@ -564,7 +564,8 @@ class PolarCodeFrozen:
 
         self.BER_list = BER_list         
 
-def _polar_bsc(N_code=4, p=0.11, N_iter=1000):
+
+def polar_bsc(N_code=4, p=0.11, N_iter=1000):
     """
     (0,1)에 대한 원래 코드를 (1,-1)로 바꾸어서 p대신 2*p를 사용해 디자인했음.
     Input:
@@ -586,27 +587,6 @@ def _polar_bsc(N_code=4, p=0.11, N_iter=1000):
     biterrd /= N_iter    
     return biterrd
 
-def polar_bsc(N_code=4, p=0.11, N_iter=1000):
-    """
-    (0,1)에 대한 원래 코드를 (1,-1)로 바꾸어서 p대신 2*p를 사용해 디자인했음.
-    Input:
-    p=0.11: 오류 확률을 넣는다. 그리고 p*100%의 심볼은 1로 오튜가 났다고 가정하고
-        0, 1에 상관없이 오류는 p만큼 모든 심볼에 들어가는 걸로 되어 있음. 
-    Comments:
-    udhat는 frozen bit에 대한 실제 데이터를 결정한 값이다. 이 값은 통상 BER 계산시에는 사용되지 않는다.
-    frozen bit로 설정해 오류 역전파가 없다는 가정으로 각 채널의 성능 평가를 위해 사용한다.
-    """
-    # 모든 비트를 frozen 시킴
-    f = np.ones(N_code, dtype=int)
-    biterrd = np.zeros(N_code)    
-    for _ in range(N_iter):
-        # 정상 입력은 모두 0으로 가정함.
-        y_bin = np.zeros(N_code) + p
-        y_bin[np.random.rand(N_code)<p] = 1 - p
-        ud_hat, _ = decode_frozen_n(1-2*y_bin, f)
-        biterrd += ud_hat        
-    biterrd /= N_iter    
-    return biterrd
 
 if __name__ == '__main__':
     # main_run_coding_awgn()
