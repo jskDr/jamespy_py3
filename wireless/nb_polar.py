@@ -608,6 +608,38 @@ def polar_bsc(N_code=4, p=0.11, N_iter=1000):
     biterrd /= N_iter    
     return biterrd
 
+@nb.jit
+def polar_bec(N_code=4, erase_prob=0.5):
+    """
+    BEC에 대해 Polar code의 예측 성능을 구한다. 단, 비트당 제거 오류율은 erase_prob로 가정한다.
+    """
+    n = int(np.log2(N_code))
+    E = np.zeros(N_code)
+    # E_out = np.zeros(N_code)    
+    E[0] = erase_prob
+    for i in range(n):
+        LN = 2**i
+        # print(i, LN)
+        # print('E in:', E)
+        # i stage에서 끝은 LN*2이다. 안그러면 broadcast되어 버린다.
+        E[LN:LN*2] = E[:LN] * E[:LN]
+        E[:LN] = 1-(1-E[:LN])*(1-E[:LN])   
+        # print('E out:', E)        
+    return E
+
+def polar_design_bec(N_code=4, K_code=2, erase_prob=0.5):
+    """
+    BEC일 경우에 각 비트의 오류율을 계산해 frozen_flag를 만든다.
+    """
+    biterrd = polar_bec(N_code=N_code, erase_prob=erase_prob)
+    idx = np.argsort(biterrd)
+    frozen_flag_n = np.ones(N_code, dtype=int)
+    frozen_flag_n[idx[:K_code]] = 0
+    print('BER for each bit', biterrd)
+    return frozen_flag_n
+
 if __name__ == '__main__':
     # main_run_coding_awgn()
-    main_run_coding_array_all_awgn_tile(Ntile=100000, flag_fig=True)
+    # main_run_coding_array_all_awgn_tile(Ntile=100000, flag_fig=True)
+    f = polar_design_bec(2,1)
+    print(f)
