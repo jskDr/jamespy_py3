@@ -525,13 +525,28 @@ def coding_array_all_awgn_frozen_n(u_array, frozen_flag_n, SNRdB=10):
     return e_array
 
 class PolarCodeFrozen:
-    def __init__(self, N_code=2, K_code=2, frozen_flag_n=np.zeros(2,dtype=int)):
+    def old__init__(self, N_code=2, K_code=2, frozen_flag_n=np.zeros(2,dtype=int)):
         """
         N_code=4: Code block size
         K_code=2: Information bit size
         frozen_flag_n=[1,1,0,0]: 코드 블럭 안의 매 비트가 frozen인지 아닌지를 표시함. Frozen이면 1, 아니면 0임.
             Frozen 아닌 비트들의 갯 수는 Code_K와 동일해야 함.
         """
+        assert N_code == len(frozen_flag_n)
+        assert N_code - K_code == np.sum(frozen_flag_n)
+        self.N_code = N_code
+        self.K_code = K_code 
+        self.frozen_flag_n = frozen_flag_n
+
+    def __init__(self, N_code=2, K_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
+        """
+        N_code=4: Code block size
+        K_code=2: Information bit size
+        frozen_flag_n=[1,1,0,0]: 코드 블럭 안의 매 비트가 frozen인지 아닌지를 표시함. Frozen이면 1, 아니면 0임.
+            Frozen 아닌 비트들의 갯 수는 Code_K와 동일해야 함.
+        """
+        if frozen_flag == 'auto':
+            frozen_flag_n = polar_design_bec(N_code=N_code, K_code=K_code)
         assert N_code == len(frozen_flag_n)
         assert N_code - K_code == np.sum(frozen_flag_n)
         self.N_code = N_code
