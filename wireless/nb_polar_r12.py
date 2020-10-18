@@ -524,7 +524,7 @@ def coding_array_all_awgn_frozen_n(u_array, frozen_flag_n, SNRdB=10):
     e_array = u_array - ud_array
     return e_array
 
-class _PolarCodeFrozen:
+class PolarCodeFrozen:
     def __init__(self, N_code=2, K_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
         """
         N_code=4: Code block size
@@ -641,118 +641,8 @@ def polar_design_bec(N_code=4, K_code=2, erase_prob=0.5):
     print('BER for each bit', biterrd)
     return frozen_flag_n
 
-class _PolarCodeFrozen:
-    def __init__(self, N_code=2, K_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
-        """
-        N_code=4: Code block size
-        K_code=2: Information bit size
-        frozen_flag_n=[1,1,0,0]: 코드 블럭 안의 매 비트가 frozen인지 아닌지를 표시함. Frozen이면 1, 아니면 0임.
-            Frozen 아닌 비트들의 갯 수는 Code_K와 동일해야 함.
-        """
-        if frozen_flag == 'auto':
-            frozen_flag_n = polar_design_bec(N_code=N_code, K_code=K_code)
-            print('Auto: frozen_flag_n =', frozen_flag_n)
-        assert N_code == len(frozen_flag_n)
-        assert N_code - K_code == np.sum(frozen_flag_n)
-        self.N_code = N_code
-        self.K_code = K_code 
-        self.frozen_flag_n = frozen_flag_n
-
-    def plot(self, SNRdB_list, BER_list):
-        plt.semilogy(SNRdB_list, BER_list)
-        plt.grid()
-        plt.xlabel('SNR(dB)')
-        plt.ylabel('BER')
-        plt.title('Performance of Polar Code')
-        plt.show()    
-
-    def run(self, 
-        SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        # 정보 비트수느느 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
-        u_array = np.random.randint(2, size=(N_iter, self.K_code))
-        
-        BER_list = []
-        for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_frozen_n(u_array, frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
-            BER_list.append(BER)
-
-        if flag_fig:
-            self.plot(SNRdB_list, BER_list)  
-        print("SNRdB_list, BER_list")
-        print(SNRdB_list, BER_list)
-
-        self.BER_list = BER_list  
-
-
-class PolarCodeFrozen:
-    def __init__(self, N_code=2, K_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
-        """
-        N_code=4: Code block size
-        K_code=2: Information bit size
-        frozen_flag_n=[1,1,0,0]: 코드 블럭 안의 매 비트가 frozen인지 아닌지를 표시함. Frozen이면 1, 아니면 0임.
-            Frozen 아닌 비트들의 갯 수는 Code_K와 동일해야 함.
-        """
-        if frozen_flag == 'auto':
-            frozen_flag_n = polar_design_bec(N_code=N_code, K_code=K_code)
-            print('Auto: frozen_flag_n =', frozen_flag_n)
-        assert N_code == len(frozen_flag_n)
-        assert N_code - K_code == np.sum(frozen_flag_n)
-        self.N_code = N_code
-        self.K_code = K_code 
-        self.frozen_flag_n = frozen_flag_n
-
-    def plot(self, SNRdB_list, BER_list):
-        plt.semilogy(SNRdB_list, BER_list)
-        plt.grid()
-        plt.xlabel('SNR(dB)')
-        plt.ylabel('BER')
-        plt.title('Performance of Polar Code')
-        plt.show()    
-
-    def display_flag(self, SNRdB_list, BER_list, flag_fig):
-        if flag_fig:
-            self.plot(SNRdB_list, BER_list) 
-        print("SNRdB_list, BER_list")
-        print(SNRdB_list, BER_list)
-        self.BER_list = BER_list  
-
-    def run(self, SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        # 정보 비트수는 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
-        u_array = np.random.randint(2, size=(N_iter, self.K_code))
-        BER_list = []
-        for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_frozen_n(u_array, frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
-            BER_list.append(BER)
-        self.display_flag(SNRdB_list, BER_list, flag_fig)  
-
-class NPolarCodeFrozen(PolarCodeFrozen):
-    def __init__(self, N_code=4, K_code=4, P_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
-        """
-        Inputs:
-        P_code: the number of AE input bits
-        """
-        super().__init__(N_code=N_code, K_code=K_code, 
-            frozen_flag=frozen_flag, frozen_flag_n=frozen_flag_n)
-        self.P_code = P_code
-
-    def run(self, SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        # 정보 비트수는 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
-        u_array = np.random.randint(2, size=(N_iter, self.K_code))
-        BER_list = []
-        for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_frozen_n(u_array, frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
-            BER_list.append(BER)
-        self.display_flag(SNRdB_list, BER_list, flag_fig)  
-    
- 
-
 if __name__ == '__main__':
     # main_run_coding_awgn()
     # main_run_coding_array_all_awgn_tile(Ntile=100000, flag_fig=True)
-    #f = polar_design_bec(2,1)
-    #print(f)
-    polar = NPolarCodeFrozen(2, 2, 'auto')
-    polar.run([5], 10)
+    f = polar_design_bec(2,1)
+    print(f)

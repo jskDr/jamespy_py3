@@ -122,17 +122,3 @@ def test_decode_n():
     show('N=8')
     show(x)
     show(decode_n(x))
-
-def npolar_transform(u,P=1):
-    u = list(u)
-    print(len(u), u)
-    if len(u) == P:
-        x = u
-    else:
-        u1 = u[0::2]
-        u2 = u[1::2]
-        u1u2 = []
-        for u1_i, u2_i in zip(u1, u2):
-            u1u2.append(u1_i + u2_i)
-        x = npolar_transform(u1u2) + npolar_transform(u2)
-    return x
