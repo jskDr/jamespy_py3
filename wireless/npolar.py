@@ -727,27 +727,9 @@ class PolarCodeFrozen:
             BER_list.append(BER)
         self.display_flag(SNRdB_list, BER_list, flag_fig)  
 
-class NPolarCodeFrozen(PolarCodeFrozen):
-    def __init__(self, N_code=4, K_code=4, P_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
-        """
-        Inputs:
-        P_code: the number of AE input bits
-        """
-        super().__init__(N_code=N_code, K_code=K_code, 
-            frozen_flag=frozen_flag, frozen_flag_n=frozen_flag_n)
-        self.P_code = P_code
-
-    def run(self, SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
-        # 정보 비트수는 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
-        u_array = np.random.randint(2, size=(N_iter, self.K_code))
-        BER_list = []
-        for SNRdB in SNRdB_list:
-            e_array = coding_array_all_awgn_frozen_n(u_array, frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
-            BER_list.append(BER)
-        self.display_flag(SNRdB_list, BER_list, flag_fig)  
-    
- 
+#========================================================================================
+# NPolar
+#========================================================================================
 @nb.jit
 def np_encode_n_NP(u, N_P):
     """
@@ -770,12 +752,104 @@ def np_encode_n_NP(u, N_P):
     return x
 
 @nb.jit
-def np_encode_n(u, P):
+def _np_encode_n(u, P):
     """
     Inputs:
     P=2: AE 입력의 길이, P=1이면 AE 미사용, P=N이면 Polar 미사용
     """
     return np_encode_n_NP(u, len(u)//P)
+
+@nb.jit
+def bit_forward(x):
+    """
+    polar encoding에서 사용한 방법을 역으로 수행함.
+    bit_reverse를 역으로 복원함. 이 방법은 디코딩에서도 내부적으로 사용되고 있음.
+    Polar encoding: x = encoding(x[0::2]) + encoding(x[1::2]) if len(x) > 1
+    """
+    LN = len(x)
+    if LN == 1:
+        return x
+    else:
+        y = np.zeros_like(x)
+        y[0::2] = bit_forward(x[:LN/2])
+        y[1::2] = bit_forward(x[LN/2:])
+    return y
+
+@nb.jit
+def ae_emul(u):
+    """
+    AE가 해야할 일을 Polar로 emulation시킴
+    Polar로 emulation시키기 위해서는 bit reverse 되어 있는걸 복원해야 함.
+    """
+    u = bit_forward(u)
+    x = encode_n(u)
+    return x
+
+@nb.jit
+def np_encode_n(u, P):
+    """
+    Inputs:
+    P=2: AE 입력의 길이, P=1이면 AE 미사용, P=N이면 Polar 미사용
+    """
+    N_P = len(u)//P
+    y = np_encode_n_NP(u, N_P)    
+    x = np.zeros_like(y) # ae_polar
+    ix = np.arange(len(u))
+    for i in range(N_P):
+        ae_in = y[i::N_P]
+        ae_ix = ix[i::N_P]
+        ae_out = ae_emul(ae_in)
+        x[ae_ix] = ae_out
+    return x
+
+@nb.jit
+def np_encode_array_n(u_array, P_code):
+    x_array = np.zeros_like(u_array)
+    for i in range(len(u_array)):
+        x_array[i] = np_encode_n(u_array[i], P_code)        
+    return x_array
+
+@nb.jit
+def np_coding_array_all_awgn_frozen_n(u_array, P_code, frozen_flag_n, SNRdB=10):
+    e_array = np.zeros_like(u_array)
+
+    # encode를 하기 전과 decode 끝난 후에 frozen처리를 포함하면 됨.
+    # u_array는 길이가 K_code인 벡터들의 모임이고, uf_array는 길이가 N_code인 벡터들의 모임이다.
+    uf_array = frozen_encode_array_n(u_array, frozen_flag_n) 
+
+    # encode_array_n()은 frozen 여부를 알 필요가 없음.
+    # print('P_code:', P_code)
+    x_array = np_encode_array_n(uf_array, P_code)
+    y_array = channel_numpy_awgn(x_array, SNRdB)  
+    ufd_array = decode_frozen_array_n(y_array, frozen_flag_n) # frozen을 고려한 함수로 변경되어야 함!
+    # ufd_array = decode_array_n(y_array)
+    
+    ud_array = frozen_decode_array_n(ufd_array, frozen_flag_n)
+    
+    e_array = u_array - ud_array
+    return e_array
+
+class NPolarCodeFrozen(PolarCodeFrozen):
+    # Emulation version: AE is emulated by Polar encoding
+    def __init__(self, N_code=4, K_code=4, P_code=1, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
+        """
+        Inputs:
+        P_code: the number of AE input bits
+        """
+        super().__init__(N_code=N_code, K_code=K_code, 
+            frozen_flag=frozen_flag, frozen_flag_n=frozen_flag_n)
+        self.P_code = P_code
+
+    def run(self, SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
+        # 정보 비트수는 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
+        u_array = np.random.randint(2, size=(N_iter, self.K_code))
+        BER_list = []
+        for SNRdB in SNRdB_list:
+            e_array = np_coding_array_all_awgn_frozen_n(u_array, self.P_code,
+                        frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
+            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
+            BER_list.append(BER)
+        self.display_flag(SNRdB_list, BER_list, flag_fig)  
 
 
 if __name__ == '__main__':
@@ -783,5 +857,7 @@ if __name__ == '__main__':
     # main_run_coding_array_all_awgn_tile(Ntile=100000, flag_fig=True)
     #f = polar_design_bec(2,1)
     #print(f)
-    polar = NPolarCodeFrozen(2, 2, 'auto')
-    polar.run([5], 10)
+    #polar = NPolarCodeFrozen(2, 2, 'auto')
+    #polar.run([5], 10)
+    polar = NPolarCodeFrozen(N_code=4, K_code=4, P_code=4, frozen_flag='auto')
+    polar.run(SNRdB_list=list(range(10)), N_iter=10000, flag_fig=True)    

@@ -137,7 +137,7 @@ def npolar_transform(u,N_P=4/1):
         x = npolar_transform(u1u2,N_P) + npolar_transform(u2,N_P)
     return x
 
-def npolar_coding(N=8, P=1):
+def npolar_coding(N=8, P=1, ae_coding=True):
     """
     Input:
     P=1: AE 입력의 크기임. NPolar의 경우, P=N을 제외하고는 AE를 one-hot vector로 처리하지 않음.
@@ -156,7 +156,10 @@ def npolar_coding(N=8, P=1):
         idx_l = idx[i::N_P]
         x_polar.append(y_polar_l)
         x_polar_idx.append(idx_l)
-        ae_polar_l = ae_coding_emul(x_polar[-1])
+        if ae_coding:
+            ae_polar_l = ae_coding_emul(x_polar[-1])
+        else:
+            ae_polar_l = x_polar[-1]
         for i, j in enumerate(x_polar_idx[-1]):
             ae_polar[j] = ae_polar_l[i]
         #print('x_polar:', x_polar)
