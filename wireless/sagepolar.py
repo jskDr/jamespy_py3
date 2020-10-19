@@ -103,36 +103,98 @@ def gen_u(N=2):
     return u    
 
 def test_decode_n():
-    u = gen_u(2)
-    x = polar_transform(u)
-    show('N=2')
-    show(x)
-    show(decode_n(x))
+    for N in [2,4,8]:
+        show('N=', N)
+        u = gen_u(N)
+        show('U:', u)
+        x = polar_transform(u)
+        show('X:', x)
+        ud, _ = decode_n(x)
+        show('UD:', ud)
 
-    u = gen_u(4)
-    x = polar_transform(u)
-    show('N=4')
-    show(x)
-    show(decode_n(x))
 
-    #R.<U0, U1, U2, U3, U4, U5, U6, U7> = IntegerModRing(2)[]
-    #u = [U0, U1, U2, U3, U4, U5, U6, U7]
-    u = gen_u(8)
-    x = polar_transform(u)
-    show('N=8')
-    show(x)
-    show(decode_n(x))
-
-def npolar_transform(u,P=1):
+#============================================================
+# NPolar 부호화 및 복호화
+# 여기서는 AE는 구현하지 않고 Polar encoding으로 emulation함
+#============================================================
+def npolar_transform(u,N_P=4/1):
     u = list(u)
-    print(len(u), u)
-    if len(u) == P:
+    # print(len(u), u)
+    if len(u) == 1:
         x = u
+    elif len(u) > N_P:
+        # 처음이 1이고 갈수록 2, 4, 8이 된다.
+        # N_P = N/P 값에 따라 AE 담당할 앞부분은 polar 변환하지 않고 뒤집기만 한다.
+        u1 = u[0::2]
+        u2 = u[1::2]
+        x = npolar_transform(u1,N_P) + npolar_transform(u2,N_P)                
     else:
         u1 = u[0::2]
         u2 = u[1::2]
         u1u2 = []
         for u1_i, u2_i in zip(u1, u2):
             u1u2.append(u1_i + u2_i)
-        x = npolar_transform(u1u2) + npolar_transform(u2)
+        x = npolar_transform(u1u2,N_P) + npolar_transform(u2,N_P)
     return x
+
+def npolar_coding(N=8, P=1):
+    """
+    Input:
+    P=1: AE 입력의 크기임. NPolar의 경우, P=N을 제외하고는 AE를 one-hot vector로 처리하지 않음.
+    """    
+    N_P = N // P
+    #u = var('U',n=N)
+    u = gen_u(N)
+    y_polar = npolar_transform(u, N_P=N_P)
+    #print('y_polar:', y_polar)
+    x_polar = []    
+    x_polar_idx = []
+    ae_polar = y_polar.copy()
+    idx = list(range(N))
+    for i in range(N_P):
+        y_polar_l = y_polar[i::N_P]
+        idx_l = idx[i::N_P]
+        x_polar.append(y_polar_l)
+        x_polar_idx.append(idx_l)
+        ae_polar_l = ae_coding_emul(x_polar[-1])
+        for i, j in enumerate(x_polar_idx[-1]):
+            ae_polar[j] = ae_polar_l[i]
+        #print('x_polar:', x_polar)
+    print("x_polar, x_polar_idx:", x_polar, x_polar_idx)
+    return ae_polar
+
+def bit_forward(x):
+    """
+    polar encoding에서 사용한 방법을 역으로 수행함.
+    bit_reverse를 역으로 복원함. 이 방법은 디코딩에서도 내부적으로 사용되고 있음.
+    Polar encoding: x = encoding(x[0::2]) + encoding(x[1::2]) if len(x) > 1
+    """
+    LN = len(x)
+    if LN == 1:
+        return x
+    else:
+        Half_LN = LN // 2
+        y = x.copy()
+        #print(x, y)
+        y[0::2] = bit_forward(x[:Half_LN])
+        y[1::2] = bit_forward(x[Half_LN:])
+    return y
+
+def ae_coding_emul(x):
+    """
+    AE가 해야할 일을 Polar로 emulation시킴
+    Polar로 emulation시키기 위해서는 bit reverse 되어 있는걸 복원해야 함.
+    """
+    print('AE:', x)
+    u = bit_forward(x)
+    print('bit_forward:', u)
+    x = polar_transform(u)
+    return x
+
+def test_npolar(N=8,P=4):
+    N, P = 8, 4
+    print(f'N={N}, P={P}')
+    x = npolar_coding(N, P)
+    show('X:', x)
+    ud, _ = decode_n(x)
+    show('UD:', ud)
