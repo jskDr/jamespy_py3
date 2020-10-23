@@ -1,6 +1,7 @@
 import numpy as np
 import numba as nb
 import matplotlib.pyplot as plt
+from itertools import combinations
 
 def calc_ber(e_array):
     return np.mean(np.abs(e_array))
@@ -726,6 +727,7 @@ class PolarCodeFrozen:
             BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
             BER_list.append(BER)
         self.display_flag(SNRdB_list, BER_list, flag_fig)  
+        return BER_list
 
 class NPolarCodeFrozen(PolarCodeFrozen):
     def __init__(self, N_code=4, K_code=4, P_code=2, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):
@@ -777,6 +779,32 @@ def np_encode_n(u, P):
     """
     return np_encode_n_NP(u, len(u)//P)
 
+def polar_run_comb(N_code=8, K_code=4, max_cnt=None,
+        SNRdB_list=list(range(1,3)), N_iter=1000, flag_fig=True): 
+    ber_ll = []
+    frozen_d = {}
+    cnt = 0 
+    for frozen_idx in combinations(list(range(N_code)), K_code):
+        if max_cnt:
+            if cnt == max_cnt:
+                break
+            else:
+                cnt += 1
+        frozen_flag_n = np.zeros(N_code, dtype=int)
+        print(frozen_idx)
+        frozen_idx_a = np.array(frozen_idx)
+        frozen_flag_n[frozen_idx_a] = 1
+        print(frozen_flag_n)
+        polar = PolarCodeFrozen(N_code=N_code, K_code=K_code, frozen_flag_n=frozen_flag_n)
+        ber_l = polar.run(SNRdB_list=SNRdB_list, N_iter=N_iter, flag_fig=flag_fig)    
+        ber_ll.append(ber_l)
+        frozen_str = ''.join([str(i) for i in frozen_flag_n])
+        frozen_d[frozen_str] = ber_l[-1]
+    print(ber_ll)
+    print(frozen_d)
+    ber_aa = np.array(ber_ll)
+    plt.stem(ber_aa[:,-1],use_line_collection=True)    
+    return frozen_d
 
 if __name__ == '__main__':
     # main_run_coding_awgn()
