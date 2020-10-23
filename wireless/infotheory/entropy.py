@@ -1,10 +1,24 @@
 from sage.all import *
 
-class DRV:
+class _DRV:
     # descrete random variable
     def __init__(self, P=None):
         self.p = var('p')
         self.P = P # not define yet
+
+class DRV:
+    def __init__(self, P=None):
+        """
+        DRV: Descrete random variable
+        Inputs:
+        P=[p, 1-p] or P=p where p=var('p')
+        """
+        if P is not None and len(P) == 1:
+            self.p = P
+            self.P = None
+        else:
+            self.p = var('p')
+            self.P = P
 
 class SUM:
     def __init__(self, f, p, P=None):
@@ -33,6 +47,8 @@ class SUM:
 def H(X):
     """
     Caculate entropy of descrete random variable X
+    Inputs:
+    DRV X: X is descrete random variable
     """
     f = -X.p*log(X.p,2) # use log2 for bits
     if X.P is None:
@@ -118,7 +134,7 @@ def test_InformationEntropyX():
     show(img)
     pretty_print(h)
 
-class InformationEntropyXY:
+class _InformationEntropyXY:
     def __init__(self, Py_given_x_list):
         self.Px_list = Px_list
     def Hx(self):
