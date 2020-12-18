@@ -190,7 +190,7 @@ def ae_train_test(
     Code_K=2,
     Code_N=4,
     Total_blocks=1000,
-    Total_episodes=20,
+    N_episodes=20,
     EbNo_dB=10,
     Model_type='linear',
     Modulation_type='PAM'):
@@ -213,7 +213,7 @@ def ae_train_test(
     dataset = model.dataset
     test_dataset = model.test_dataset
 
-    for e in range(Total_episodes):    
+    for e in range(N_episodes):    
         for x, y in dataset:
             with tf.GradientTape() as tape:
                 code_logits, pwr = model(x, noise_sig)
@@ -276,7 +276,7 @@ def test_snr_range(
         EbNo_dB_l = range(10),
         Total_mod_bits=1,
         Code_K=2,Code_N=2,
-        Total_episodes=500,
+        N_episodes=500,
         Total_blocks_train=2000,
         Total_blocks_test=100000,
         Model_type='linear'):
@@ -287,7 +287,7 @@ def test_snr_range(
     BER_l = []
     for EbNo_dB in EbNo_dB_l:
         trained_model = ae_train_test(Total_mod_bits=Total_mod_bits,Code_K=Code_K,Code_N=Code_N,
-            Total_blocks=Total_blocks_train,Total_episodes=Total_episodes,EbNo_dB=EbNo_dB, Model_type=Model_type)   
+            Total_blocks=Total_blocks_train,N_episodes=N_episodes,EbNo_dB=EbNo_dB, Model_type=Model_type)   
         BER = large_test(trained_model, Total_blocks=Total_blocks_test)
         BER_l.append(BER)
         print(EbNo_dB, BER)    
@@ -309,7 +309,7 @@ if __name__ == '__main__':
         Code_K=2,
         Code_N=6,
         Total_blocks=1000,
-        Total_episodes=200,
+        N_episodes=200,
         EbNo_dB=5,
         Model_type='linear',
         Modulation_type='PAM')  
