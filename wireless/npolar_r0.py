@@ -2,14 +2,6 @@ import numpy as np
 import numba as nb
 import matplotlib.pyplot as plt
 
-"""
-npolar.py
-- Emulation version: AE is emulated by Polar encoding
-- AE 해야할 기능을 Polar 파트가 대신하게 함. 
-- P_code 부분은 AE가 돌리는 걸 가정했고 그 가능성은 Polar가 대신하고 있음.    
-- Encoder단에서 aeemul()을 통해 Polar encoding을 해주기 때문에 decode는 현재 손될 필요가 없음.
-"""
-
 def calc_ber(e_array):
     return np.mean(np.abs(e_array))
 
@@ -456,6 +448,7 @@ def decode_frozen_n(y_array, frozen_flag_n):
 
     return u_hard, x_hard  
 
+
 @nb.jit
 def decode_frozen_array_n(y_array, frozen_flag_n):
     ud_array = np.zeros(y_array.shape, dtype=nb.int_) 
@@ -746,12 +739,6 @@ def np_encode_n_NP(u, N_P):
     L = len(u)
     if L != 1:
         if L > N_P:
-            """
-            - AE가 담당하는 부분이므로 Polar coding은 하지 않고 bypass함. 그렇지만 실제로는 NN에 의해 뭔가 코딩이 이루어질 것임.
-            - 추후는 여기에 NN을 넣어야 함.
-            - Bypass는 해도 bit-reverse는 계속 이루어지도록 하고 있음.
-            - NN으로 학습할 때는 그 결과만 같아지게 하면 될 거 같음. 
-            """
             u1 = u[0::2]
             u2 = u[1::2]
             x[:L/2] = np_encode_n_NP(u1, N_P)
@@ -847,12 +834,11 @@ class NPolarCodeFrozen(PolarCodeFrozen):
     - Emulation version: AE is emulated by Polar encoding
     - AE 해야할 기능을 Polar 파트가 대신하게 함. 
     - P_code 부분은 AE가 돌리는 걸 가정했고 그 가능성은 Polar가 대신하고 있음.    
-    - Encoder단에서 aeemul()을 통해 Polar encoding을 해주기 때문에 decode는 현재 손될 필요가 없음.
     """
     def __init__(self, N_code=4, K_code=4, P_code=1, frozen_flag='manual', frozen_flag_n=np.zeros(2,dtype=int)):    
         """
         Inputs:
-        P_code: the number of AE input bits. P_code=1인 경우는 AE가 처리하는 부분은 없음. 2부터 처리가 시작됨. 
+        P_code: the number of AE input bits
         """
         super().__init__(N_code=N_code, K_code=K_code, 
             frozen_flag=frozen_flag, frozen_flag_n=frozen_flag_n)
@@ -877,9 +863,5 @@ if __name__ == '__main__':
     #print(f)
     #polar = NPolarCodeFrozen(2, 2, 'auto')
     #polar.run([5], 10)
-
-    # 아래 예제는 P_code를 4로 했으므로 모든 것은 AE가 처리하는걸 가정한 것임
-    # 모든 것을 AE가 처리하면 현재로는 아무것도 안하는 코딩임. code_rate=1인 no coding과 동일하게 동작함.
-    # 그렇지만 AE의 경우 Code-rate = 1이라도 성능 이득이 생김. 
     polar = NPolarCodeFrozen(N_code=4, K_code=4, P_code=4, frozen_flag='auto')
     polar.run(SNRdB_list=list(range(10)), N_iter=10000, flag_fig=True)    
