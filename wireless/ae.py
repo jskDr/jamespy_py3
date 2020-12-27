@@ -4,6 +4,7 @@
 - 변조 방식은 BPSK를 가정함
 - QAM 계열이 될려면 I,Q 채널이 따로 존재해야 함. 그리고 채널을 고려해야 함.
 - 채널을 고려하지 않으면 어짜피 BPSK와 동일하게 동작하여 아래 코드가 정당함. 
+
 [페이딩 채널 고려]
 - 채널이 있게 되면, 수신단에서는 채널을 알아야 성능이 제대로 나올 수 있음. 수신 채널을 어떻게 사용할지 고민해야 함. 
   수신 채널의 역이 입력 신호에 곱해지는 형태가 되어야 함. y * (1/h) 또는 MMSE 방식을 사용할 수 있음. 
@@ -11,6 +12,10 @@
   고정된 수신 채널로 학습한 경우는 사용할 수가 없음. 파일럿을 이용해 수신 채널을 알아내고 이 정보를 사용하는 형태로 구성되어야 함. 
 - 채널 코딩 복호시도 classification에 사용하듯 ML이 아니라 이를 단순화하는 방식이 필요함. 그러나 인공지능은 아직도 ML로 사용하고 있음.
   CNN, RNN 계열을 사용하게 되면 ML 방식의 사용에 따른 부담을 줄 수 있는건지 확인이 필요함. 
+
+[One-hot 입력/출력]
+- 입력 뿐 아니라 출력도 one-hot으로 처리해야 함.
+  - 특히 성능을 좌우하는 출력이 one-hot으로 만들어져야 함.
 """
 import tensorflow as tf
 from tensorflow import keras
@@ -217,7 +222,7 @@ def ae_train_test(
         for x, y in dataset:
             with tf.GradientTape() as tape:
                 code_logits, pwr = model(x, noise_sig)
-                # print(code_logits.shape, y.shape)
+                print(code_logits.shape, y.shape)
                 loss_value = loss(y, code_logits) + tf.square(pwr - 1)
             gradients = tape.gradient(loss_value, model.trainable_weights)
             optimizer.apply_gradients(zip(gradients, model.trainable_weights))

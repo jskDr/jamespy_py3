@@ -875,7 +875,8 @@ class NPolarCodeFrozen(PolarCodeFrozen):
     def codec(self, u_array, SNRdB):
         e_array = np_coding_array_all_awgn_frozen_n(u_array, self.P_code,
                     frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-        return e_array
+        BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
+        return BER
 
     def run(self, SNRdB_list=list(range(10)), N_iter=1, flag_fig=False):
         # 정보 비트수는 K_code가 되어야 함. 나머지는 frozen_flag_n에 따라 0로 채워야 함.
@@ -884,8 +885,7 @@ class NPolarCodeFrozen(PolarCodeFrozen):
         for SNRdB in SNRdB_list:
             #e_array = np_coding_array_all_awgn_frozen_n(u_array, self.P_code,
             #            frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-            e_array = self.codec(u_array, SNRdB)
-            BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
+            BER = self.codec(u_array, SNRdB)
             BER_list.append(BER)
             print(f'BER[SNR:{SNRdB}(dB)] = {BER}')
         self.display_flag(SNRdB_list, BER_list, flag_fig)  
@@ -906,19 +906,105 @@ def np_coding_array_all_awgn_frozen_n_rx_decode(y_array, u_array, frozen_flag_n)
 
 ObjectiveData = {}
 
-def objective(trial):
-    y = ObjectiveData['y']
-    Code_K = y.shape[1] # u_array : Total_blocks * Code_K
-    Total_messages = 2 ** Code_K
-    Decoder_NN = Sequential()
-    Decoder_NN.add(Dense(Total_messages, activation='softmax'))
-    Decoder_NN.compile(loss='sparse_categorical_crossentropy', 
-                        optimizer=RMSprop(lr=0.001), 
-                        metrics=['accuracy'])
+class InputBlocksXY: # Pulse amplitude modulation (PAM) such as Pulse shift keying (PSK)
+    def __init__(self, X, Y_bin, Total_messages, buffer_size=1024, batch_size=64):        
+        """
+        - 여기에 정리된 심볼은 I,Q를 구분하지 않기 때문에 PAM이라고 보는게 맞다.
+        - Amplitude-shift keying (ASK), v[i] = 2A*i/(L-1) - A for [-A, A],와 유사하지만 진폭 차이는 AI 결정함
+        
+        - 입력의 길이는 가능한 메시지 수이다. 이에 대해 bin --> decimal 변환이 있어야함.
+          이에 대해 onehot 변환이 되지 않아도 되고 최종 계층은 2**Code_K 만큼 출력 필요.
+          그리고 최종 계층은 softmax로 activation을 사용해야 하고 
+          SparseCategoricalCrossentropy()의 ()안에 from_logits=True을 사용할 필요가 없음.
 
-    x = trial.suggest_uniform('x', -10, 10)
-    accuracy = 1 - (2 - x)**2
-    return accuracy
+        - 여기에 비해 Encoder로 출력되는 심볼의 수는 Code_N/N_mod*2가 되어 매우 줄어들게 된다.
+        
+        - 입력과 출력 모두 onehot encoding할 결과가 되어야 한다. 
+        - X_train, X_test, Y_train, Y_test = train_test_split(S_onehot, S_onehot, test_size=0.2)
+        - y는 onehot이 다시 복원된 index 값이 들어가야 한다. 반면, X는 onehot을 처리한 것이 들어가야 함.
+        
+        - y[0]는 길이 Code_K만큼의 이진 벡터이다. 이를 2**Code_K를 최대값으로 하는 
+          decimal integer로 바꾸어야 한다.
+        """
+        #Total_messages = 2 ** Code_K
+        #S = np.random.randint(Total_messages, size=Total_blocks) 
+
+        """
+        Polar 엔코딩을 위해 입력을 이진 벡터로 만들었지만 뉴럴넷은 이진 벡터를 다시 decimal로 나타내어야 함.
+        내부적으로 one-hot이 고려되게 되어 있고, NN의 마지막 계층은 one-hot한 크기로 넣어야 함. 
+        편의를 위해 사용자의 one-hot은 처리하지 않아도 자동으로 동작이 되게 되어 있음.
+        """
+        bin_2_dec = np.array([2**dec for dec in range(Y_bin.shape[1])]).reshape(-1,1)
+        Y_dec = np.dot(Y_bin, bin_2_dec).reshape(-1)
+        # Y_onehot = tf.one_hot(Y_dec, Total_messages, dtype='float32').numpy()
+        # print(Y_bin.shape, Y_dec.shape) #, Y_onehot.shape)
+
+        # Tensorflow가 지원하는 foat32로 변환함.
+        X, Y_dec = X.astype(np.float32), Y_dec.astype(np.float32)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y_dec, test_size=0.2)
+        dataset = tf.data.Dataset.from_tensor_slices((X_train, Y_train))
+        dataset = dataset.shuffle(buffer_size=buffer_size).batch(batch_size) # 여기서 1024, 64는 임의의 value이다.
+        test_dataset = tf.data.Dataset.from_tensor_slices((X_test, Y_test))
+        test_dataset = test_dataset.shuffle(buffer_size=buffer_size).batch(batch_size)   
+        
+        self.dataset = dataset
+        self.test_dataset = test_dataset
+
+class NeuralDecoder(Layer):
+    def __init__(self, Total_messages, trial):
+        super(NeuralDecoder, self).__init__()
+        self.neural_block = Sequential()
+        self.neural_block.add(Dense(
+            trial.suggest_categorical('hidden_size', [Total_messages//2, Total_messages]), 
+            activation='relu'))        
+        # trial.suggest_categorical('kernel_size', [3, 5])
+        self.neural_block.add(Dense(Total_messages, activation='softmax'))
+        #Decoder_NN.compile(loss='sparse_categorical_crossentropy', 
+        #            optimizer=RMSprop(lr=0.001), 
+        #            metrics=['accuracy'])
+    def call(self, x):
+        x = self.neural_block(x)
+        y = BatchNormalization()(x)
+        return y
+
+def objective(trial):
+    X = ObjectiveData['X'] # input vectors for NN
+    Y = ObjectiveData['Y'] # output (target) vectors
+    Total_episodes = ObjectiveData['Total_episodes']
+
+    Code_K = Y.shape[1] # u_array : Total_blocks * Code_K
+    Total_messages = 2 ** Code_K
+
+    inblock = InputBlocksXY(X, Y, Total_messages)
+    dataset = inblock.dataset
+    test_dataset = inblock.test_dataset
+
+    model = NeuralDecoder(Total_messages, trial)    
+    loss = tf.keras.losses.SparseCategoricalCrossentropy() 
+    accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
+    optimizer = tf.keras.optimizers.Adam()    
+
+    loss_train_l = []
+    acc_train_l = []
+    loss_test_l = []
+    acc_test_l = []
+
+    for _ in range(Total_episodes):    
+        for x, y in dataset:
+            with tf.GradientTape() as tape:
+                y_pred = model(x)
+                # print(y.shape, y_pred.shape)
+                loss_value = loss(y, y_pred)
+            gradients = tape.gradient(loss_value, model.trainable_weights)
+            optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+            accuracy.update_state(y, y_pred)
+        loss_train_l.append(float(loss_value))
+        acc_train_l.append(float(accuracy.result()))
+
+    print(f'train accuracy:{acc_train_l}')
+    #x = trial.suggest_uniform('x', -10, 10)
+    #acc = 1 - (2 - x)**2
+    return np.max(acc_train_l)
 
 
 def np_coding_array_all_awgn_frozen_n_rx(u_array, P_code, frozen_flag_n, SNRdB=10):
@@ -938,23 +1024,27 @@ def np_coding_array_all_awgn_frozen_n_rx(u_array, P_code, frozen_flag_n, SNRdB=1
       - 이때 앞서 작성한 AE 코드를 참조한다.
     - 코드의 오류를 확인하기 위해 기존의 디코딩 부분은 당분가 아래에 그대로 둔다.
     """
-    ObjectiveData['x'] = y_array
-    ObjectiveData['y'] = u_array    
+    ObjectiveData['X'] = y_array
+    ObjectiveData['Y'] = u_array    
+    ObjectiveData['Total_episodes'] = 300    
     study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=10)
+    study.optimize(objective, n_trials=2)
     print('study.best_params', study.best_params)
+    #best_value는 accuracy이므로 BER = 1 - accuracy가 된다.
+    BER = 1 - study.best_value
 
     """
     기존의 디코딩 부분
     """
-    e_array = np_coding_array_all_awgn_frozen_n_rx_decode(y_array, u_array, frozen_flag_n)
-    return e_array
+    #e_array = np_coding_array_all_awgn_frozen_n_rx_decode(y_array, u_array, frozen_flag_n)
+    #BER = np.sum(np.abs(e_array)) / np.prod(e_array.shape)
+    return BER
 
 class NPolarCodeFrozenRx(NPolarCodeFrozen):
     def codec(self, u_array, SNRdB):
-        e_array = np_coding_array_all_awgn_frozen_n_rx(u_array, self.P_code,
+        BER = np_coding_array_all_awgn_frozen_n_rx(u_array, self.P_code,
                     frozen_flag_n=self.frozen_flag_n, SNRdB=SNRdB)
-        return e_array
+        return BER
 
 def main_NPolarCodeFrozen():
     # 아래 예제는 P_code를 4로 했으므로 모든 것은 AE가 처리하는걸 가정한 것임
@@ -965,7 +1055,7 @@ def main_NPolarCodeFrozen():
 
 def main_NPolarCodeFrozenRx():
     polar = NPolarCodeFrozenRx(N_code=4, K_code=4, P_code=1, frozen_flag='auto')
-    polar.run(SNRdB_list=list(range(10)), N_iter=10000, flag_fig=True)    
+    polar.run(SNRdB_list=[6, 9], N_iter=1000, flag_fig=True)    
 
 if __name__ == '__main__':
     # main_run_coding_awgn()
