@@ -1026,9 +1026,9 @@ def np_coding_array_all_awgn_frozen_n_rx(u_array, P_code, frozen_flag_n, SNRdB=1
     """
     ObjectiveData['X'] = y_array
     ObjectiveData['Y'] = u_array    
-    ObjectiveData['Total_episodes'] = 300    
+    ObjectiveData['Total_episodes'] = 1000    
     study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=2)
+    study.optimize(objective, n_trials=1)
     print('study.best_params', study.best_params)
     #best_value는 accuracy이므로 BER = 1 - accuracy가 된다.
     BER = 1 - study.best_value
@@ -1055,9 +1055,14 @@ def main_NPolarCodeFrozen():
 
 def main_NPolarCodeFrozenRx():
     polar = NPolarCodeFrozenRx(N_code=4, K_code=4, P_code=1, frozen_flag='auto')
-    polar.run(SNRdB_list=[6, 9], N_iter=1000, flag_fig=True)    
+    polar.run(SNRdB_list=[3, 6], N_iter=1000, flag_fig=True)    
 
 if __name__ == '__main__':
+    """
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] [0.27095, 0.2349, 0.19185, 0.153775, 0.1187, 0.078025, 0.0514, 0.026575, 0.013425, 0.00505]
+    Train performance
+    [3, 6] [0.2472599744796753, 0.0654674768447876]
+    """
     # main_run_coding_awgn()
     # main_run_coding_array_all_awgn_tile(Ntile=100000, flag_fig=True)
     #f = polar_design_bec(2,1)
