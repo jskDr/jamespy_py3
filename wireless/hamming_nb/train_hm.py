@@ -206,7 +206,7 @@ if __name__ == "__main__":
 
     scores, episodes = [], []
 
-    EPISODES = 200
+    EPISODES = 100
     plt.axis([0,EPISODES,-10,0])
     plt.ion() # interactive mode를 on한다. ioff()는 off한다. cla()는 화면을 지운다.
     plt.show()
@@ -253,4 +253,7 @@ if __name__ == "__main__":
     plt.ioff()
     plt.axis([0,EPISODES,-10,0])
     plt.plot(scores, '-b')
+    plt.xlabel('Epoch')
+    plt.ylabel('Required SNR(dB)')
+    plt.title('PG RL Search for the Best (7,4) code')
     plt.show()
