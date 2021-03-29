@@ -75,9 +75,9 @@ class REINFORCEAgent:
             policies = self.model(np.array(self.states))
             actions = np.array(self.actions)
             action_prob = tf.reduce_sum(actions * policies, axis=1)
-            cross_entropy = - tf.math.log(action_prob + 1e-5)
+            cross_entropy = -tf.math.log(action_prob + 1e-5)
             loss = tf.reduce_sum(cross_entropy * discounted_rewards)
-            entropy = - policies * tf.math.log(policies)
+            entropy = -policies * tf.math.log(policies)
 
         # 오류함수를 줄이는 방향으로 모델 업데이트
         grads = tape.gradient(loss, model_params)
