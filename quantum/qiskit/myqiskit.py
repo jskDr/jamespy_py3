@@ -10,6 +10,15 @@ def show_bloch(qc):
     return plot_bloch_multivector(state)
 
 def show_hist(qc):
+    """
+    Return a history figure plotted from counts.
+
+    Args: 
+      qc (QuantumCircuit): a quantum circuit.
+
+    Returns:
+      plot_histogram(counts)
+    """
     qasmsim = Aer.get_backend('qasm_simulator')  # Tell Qiskit how to simulate our circuit
     qobj = assemble(qc)  # Assemble circuit into a Qobj that can be run
     counts = qasmsim.run(qobj).result().get_counts()  # Do the simulation, returning the state vector
