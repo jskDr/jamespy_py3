@@ -11,6 +11,21 @@ vector<int> twoSum(vector<int>& nums, int target) {
     // std::cout << target << std::endl;
     return nums;
 }
+
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        vector<int> results;
+        int i, j;
+        for(i = 0; i < nums.size(); ++i)
+            for(j = i+1; j < nums.size(); j++)
+                if (nums[i] + nums[j] == target) {
+                    results.push_back(i);
+                    results.push_back(j);
+                }
+        return results;
+    }
+};
   
 int main()
 {
