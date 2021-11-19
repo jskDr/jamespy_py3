@@ -1,0 +1,11 @@
+/Users/james/Dropbox/Aspuru-Guzik/python_lab/py3/jamespy_py3/wireless/rust_lab/polar-rs/target/debug/deps/ppv_lite86-928bdeba2d1034e0.rmeta: /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/lib.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/soft.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/types.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/mod.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/sse2.rs
+
+/Users/james/Dropbox/Aspuru-Guzik/python_lab/py3/jamespy_py3/wireless/rust_lab/polar-rs/target/debug/deps/libppv_lite86-928bdeba2d1034e0.rlib: /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/lib.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/soft.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/types.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/mod.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/sse2.rs
+
+/Users/james/Dropbox/Aspuru-Guzik/python_lab/py3/jamespy_py3/wireless/rust_lab/polar-rs/target/debug/deps/ppv_lite86-928bdeba2d1034e0.d: /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/lib.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/soft.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/types.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/mod.rs /Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/sse2.rs
+
+/Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/lib.rs:
+/Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/soft.rs:
+/Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/types.rs:
+/Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/mod.rs:
+/Users/james/.cargo/registry/src/github.com-1ecc6299db9ec823/ppv-lite86-0.2.15/src/x86_64/sse2.rs:
